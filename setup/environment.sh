@@ -7,28 +7,24 @@ if [ $EUID -ne 0 ]; then
 fi
 
 # add bot service user
-printf "adding et_mm user..."
+printf "Adding et_mm user..."
 useradd -r -s /bin/false et_mm
 printf "\t[OK]\n"
 
 # update package repository
-printf "updating system package repository..."
-yum update -q
-printf "\t[OK]\n"
+printf "Updating system package repository...\n"
+yum update -y -q
 
 # install OpenJDK 11
-printf "installing OpenJDK 11..."
+printf "Installing OpenJDK 11...\n"
 yum install -y -q java-11-openjdk
-printf "\t[OK]\n"
 
 # install PostgreSQL 
-printf "installing PostgreSQL..."
-yum install -y -q postgresql-server postgreseql-contrib
-printf "\t[OK]\n"
+printf "Installing PostgreSQL...\n"
+yum install -y -q postgresql-server
 
 # initialize database
-printf "creating PostgreSQL service:\n"
+printf "Creating PostgreSQL service:\n"
 postgresql-setup initdb
 systemctl start postgresql
 systemctl enable postgresql
-printf "\t[OK]\n"
