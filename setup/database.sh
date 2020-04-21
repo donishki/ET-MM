@@ -9,20 +9,36 @@ fi
 # set environment variables
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# make database scripts accessible
+printf "Preparing database scripts..."
+cp -r $BASEDIR/../src/database/ /tmp/
+chmod -R 777 /tmp/database
+printf "\t[OK]\n"
+
 # create database user
 printf "Creating et_mm database user...\n"
-su - postgres -c psql -d template1 -a -w -f $BASEDIR/../src/database/create_user.pgsql
+su - postgres -c "psql -d template1 -a -w -f /tmp/database/create_user.pgsql"
 
 # create database
 printf "Creating et_mm database...\n"
-su - postgres -c psql -a -w -f $BASEDIR/../src/database/create_database.pgsql
+su - postgres -c "psql -a -w -f /tmp/database/create_database.pgsql"
 
 # configure databse peer authentication
 print "Configuring peer authnetication for et_mm database..."
-echo "et_mm et_mm et_mm" >> /var/lib/pgsql/data/pg_ident.conf
-echo "local all et_mm peer map=et_mm" >> /var/lib/pgsql/data/pg_hba.conf
+if !(grep -Fxq "et_mm et_mm et_mm" /var/lib/pgsql/data/pg_ident.conf); then
+    echo "et_mm et_mm et_mm" >> /var/lib/pgsql/data/pg_ident.conf
+fi
+if !(grep -Fxq "local all et_mm peer map=et_mm" /var/lib/pgsql/data/pg_hba.conf); then
+    echo "local all et_mm peer map=et_mm" >> /var/lib/pgsql/data/pg_hba.conf
+fi
 printf "\t[OK]\n"
 
 # restart postgresql
-print "Restarting postgresql service\n"
+printf "Restarting postgresql service..."
 systemctl restart postgresql
+printf "\t[OK]\n"
+
+# cleanup
+printf "Cleaning up database scripts..."
+rm -rf /tmp/database
+printf "\t[OK]\n"
