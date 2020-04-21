@@ -13,18 +13,18 @@ printf "\t[OK]\n"
 
 # update package repository
 printf "Updating system package repository...\n"
-yum update -y -q
+yum update -y
 
 # install OpenJDK 11
 printf "Installing OpenJDK 11...\n"
-yum install -y -q java-11-openjdk
+yum install -y java-11-openjdk
 
 # install PostgreSQL 
 printf "Installing PostgreSQL...\n"
-yum install -y -q postgresql-server
+yum install -y postgresql-server
 
 # initialize database
 printf "Creating PostgreSQL service:\n"
-postgresql-setup initdb
+postgresql-setup --initdb --unit postgresql
 systemctl start postgresql
 systemctl enable postgresql
