@@ -6,14 +6,16 @@ if [ $EUID -ne 0 ]; then
     exit 1
 fi
 
-#  create database user
+# set environment variables
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# create database user
 printf "Creating et_mm database user...\n"
-su - postgres -c "psql -d template1 -c \"CREATE USER et_mm;\""
+su - postgres -c psql -d template1 -a -w -f $BASEDIR/../src/database/create_user.pgsql
 
 # create database
 printf "Creating et_mm database...\n"
-su - postgres -c "psql -c \"CREATE DATABASE et_mm_db OWNER et_mm;\""
-su - postgres -c "psql -c \"GRANT CONNECT ON DATABASE et_mm_db TO et_mm;\"" 
+su - postgres -c psql -a -w -f $BASEDIR/../src/database/create_database.pgsql
 
 # configure databse peer authentication
 print "Configuring peer authnetication for et_mm database..."
