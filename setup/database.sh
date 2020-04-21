@@ -24,7 +24,7 @@ printf "Creating et_mm database...\n"
 su - postgres -c "psql -a -w -f /tmp/database/create_database.pgsql"
 
 # configure databse peer authentication
-print "Configuring peer authnetication for et_mm database..."
+printf "Configuring peer authnetication for et_mm database..."
 if !(grep -Fxq "et_mm et_mm et_mm" /var/lib/pgsql/data/pg_ident.conf); then
     echo "et_mm et_mm et_mm" >> /var/lib/pgsql/data/pg_ident.conf
 fi
