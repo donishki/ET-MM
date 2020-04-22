@@ -16,8 +16,8 @@ CREATE OR REPLACE FUNCTION add_match_making_user (
 )
 RETURNS INTEGER AS $$
 DECLARE
-    i BIGINT,
-    user_id BIGINT,
+    i BIGINT;
+    user_id BIGINT;
     group_id BIGINT;
 BEGIN
     -- if user is not in users table add them

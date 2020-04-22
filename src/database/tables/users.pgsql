@@ -11,5 +11,5 @@
  */
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
-    discord_uuid TEXT PRIMARY KEY
+    discord_uuid TEXT UNIQUE
 );

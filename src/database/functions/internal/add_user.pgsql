@@ -2,7 +2,7 @@
  * add user to database
  *
  * args:
- *    discord_uuid - user discord unique user id
+ *    discord_uuid: user discord unique user id
  *
  * returns:
  *     success: 0
@@ -13,6 +13,7 @@ CREATE OR REPLACE FUNCTION add_user (
 )
 RETURNS INTEGER AS $$
 BEGIN
+    -- check if user already exists
     IF EXISTS (
         SELECT 1
           FROM users u
@@ -21,6 +22,7 @@ BEGIN
     THEN
         RETURN 1;
     END IF;
+    -- insert values into table
     INSERT INTO users (discord_uuid)
         VALUES (LOWER($1));
     RETURN 0;
