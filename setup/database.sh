@@ -30,6 +30,8 @@ if !(grep -Fxq "et_mm et_mm et_mm" /var/lib/pgsql/data/pg_ident.conf); then
 fi
 if !(grep -Fxq "local all et_mm peer map=et_mm" /var/lib/pgsql/data/pg_hba.conf); then
     echo "local all et_mm peer map=et_mm" >> /var/lib/pgsql/data/pg_hba.conf
+    # FIXME: next line is a dirty work around to get this going since peer auth doesn't seem to work...
+    sudo sed -i 's/ident/trust/' /var/lib/pgsql/data/pg_hba.conf
 fi
 printf "\t[OK]\n"
 

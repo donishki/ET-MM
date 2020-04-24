@@ -48,3 +48,10 @@ fi
 # execute database setup script
 printf "Executing database setup script...\n"
 /bin/bash $BASEDIR/setup/database.sh
+
+# compile application
+if [ ! -z "$BUILD" ]; then
+    if [ "$LANGUAGE" == "rust" ]; then
+        /bin/bash $BASEDIR/setup/compile_rust.sh
+    fi
+fi
