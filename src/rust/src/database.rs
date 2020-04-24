@@ -27,10 +27,7 @@ impl Database {
     /// let db = database::Database::construct("host=localhost user=user).unwrap();"
     /// ```
     pub fn construct (connection_string: &str) -> Result<Self, Box<dyn Error>> {
-        let mut client = match Client::connect(connection_string, NoTls) {
-            Ok (c) => c,
-            Err(_) => return Err(source_log!("error connecting to database."))?
-        };
+        let client = Client::connect(connection_string, NoTls)?;
         Ok (
             Self {
                 client: client

@@ -43,7 +43,11 @@ if [ "$LANGUAGE" == "java" ]; then
     printf "Installing OpenJDK 11...\n"
     yum install -y java-11-openjdk
 elif [ ! -z "$BUILD" ]; then
+    # install gdc
+    printf "Installing GCC...\n"
+    yum install -y gcc
 	# install rustup
+    printf "Installing Rustup...\n"
 	if [ -z $(su - $(logname) -c "command -v cargo") ]; then
 		printf "Installing Rustup...\n"
 		curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs https://sh.rustup.rs
