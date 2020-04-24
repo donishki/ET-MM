@@ -45,10 +45,10 @@ if [ "$LANGUAGE" == "java" ]; then
 elif [ ! -z "$BUILD" ]; then
 	# install rustup
 	printf "Installing Rustup...\n"
-	curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs
+	curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs https://sh.rustup.rs
 	chmod +x /tmp/sh.rustup.rs
 	su - $(logname) -c "/tmp/sh.rustup.rs -y"
-	su - $(logname) -c "source /home/$(logname)/.cargo/env"
+	su - $(logname) -c "source $HOME/.cargo/env"
 	# cleanup
 	rm /tmp/sh.rustup.rs
 fi
