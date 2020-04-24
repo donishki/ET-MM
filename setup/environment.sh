@@ -6,6 +6,25 @@ if [ $EUID -ne 0 ]; then
     exit 1
 fi
 
+# process arguments
+unset BUILD LANGUAGE
+while getopts ":bl:" OPTIONS
+do
+    case "${OPTIONS}" in
+        b) BUILD=1;;
+        l) LANGUAGE=${OPTARG} | tr '[:upper:]' '[:lower:]' ;;
+        *)
+            printf "Usage: ./environment.sh -b (optional: compile source) -l (required: desired bot language) <java or rust>\n"
+            exit 1
+            ;;
+    esac
+done
+if [ "$LANGUAGE" != "java" ] && [ "$LANGUAGE" != "rust" ]; then
+    printf "Usage: ./environment.sh -b (optional: compile source) -l (required: desired bot language) <java or rust>\n"
+    printf "\tInvalid option for -l: $LANGUAGE. Only Java and Rust are supported.\n"
+    exit 1
+fi
+
 # add bot service user
 printf "Adding et_mm user..."
 useradd -r -s /bin/false et_mm
@@ -15,9 +34,15 @@ printf "\t[OK]\n"
 printf "Updating system package repository...\n"
 yum update -y
 
-# install OpenJDK 11
-printf "Installing OpenJDK 11...\n"
-yum install -y java-11-openjdk
+# install runtime software
+if [ "$LANGUAGE" == "java" ]; then
+	# install OpenJDK
+    printf "Installing OpenJDK 11...\n"
+    yum install -y java-11-openjdk
+elif [ ! -z "$BUILD" ]; then
+	# install rustup
+	su - $SUDO_USER -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+fi
 
 # install PostgreSQL 
 printf "Installing PostgreSQL...\n"
