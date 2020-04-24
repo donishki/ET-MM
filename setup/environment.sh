@@ -44,7 +44,13 @@ if [ "$LANGUAGE" == "java" ]; then
     yum install -y java-11-openjdk
 elif [ ! -z "$BUILD" ]; then
 	# install rustup
-	su - $SUDO_USER -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+	printf "Installing Rustup...\n"
+	curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs
+	chmod +x /tmp/sh.rustup.rs
+	su - $(logname) -c "/tmp/sh.rustup.rs -y"
+	su - $(logname) -c "source /home/$(logname)/.cargo/env"
+	# cleanup
+	rm /tmp/sh.rustup.rs
 fi
 
 # install PostgreSQL
