@@ -8,11 +8,14 @@ fi
 
 # process arguments
 unset BUILD LANGUAGE
-while getopts ":bl:" OPTIONS
-do
-    case "${OPTIONS}" in
-        b) BUILD=1;;
-        l) LANGUAGE=${OPTARG} | tr '[:upper:]' '[:lower:]' ;;
+while getopts ":bl:" OPTIONS; do
+	case "${OPTIONS}" in
+        b)
+			BUILD=1
+			;;
+        l)
+			LANGUAGE=${OPTARG}
+			;;
         *)
             printf "Usage: ./environment.sh -b (optional: compile source) -l (required: desired bot language) <java or rust>\n"
             exit 1
@@ -44,7 +47,7 @@ elif [ ! -z "$BUILD" ]; then
 	su - $SUDO_USER -c "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
 fi
 
-# install PostgreSQL 
+# install PostgreSQL
 printf "Installing PostgreSQL...\n"
 yum install -y postgresql-server
 
