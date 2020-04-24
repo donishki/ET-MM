@@ -44,13 +44,19 @@ if [ "$LANGUAGE" == "java" ]; then
     yum install -y java-11-openjdk
 elif [ ! -z "$BUILD" ]; then
 	# install rustup
-	printf "Installing Rustup...\n"
-	curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs https://sh.rustup.rs
-	chmod +x /tmp/sh.rustup.rs
-	su - $(logname) -c "/tmp/sh.rustup.rs -y"
-	su - $(logname) -c "source $HOME/.cargo/env"
-	# cleanup
-	rm /tmp/sh.rustup.rs
+	if [ -z $(su - $(logname) -c "command -v cargo") ]; then
+		printf "Installing Rustup...\n"
+		curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs https://sh.rustup.rs
+		chmod +x /tmp/sh.rustup.rs
+		su - $(logname) -c "/tmp/sh.rustup.rs -y"
+		su - $(logname) -c "source $HOME/.cargo/env"
+		# cleanup
+		rm /tmp/sh.rustup.rs
+		printf "Reboot required to continue\n"
+		printf "Re-run this script with the same arguments after reboot completes\n"
+		read -p "Press [Enter] to reboot."
+		reboot
+	fi
 fi
 
 # install PostgreSQL
