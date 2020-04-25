@@ -14,12 +14,12 @@ fn main() {
 	info!(log.logger, "ET-MM Bot version {}", env!("CARGO_PKG_VERSION"));
     
     // initialize database object
-    info!(log.logger, "\tinitializing database object...");
+    info!(log.logger, "initializing database object...");
     let connection_string: &'static str = "host=localhost user=et_mm";
     let mut db = match database::Database::construct(connection_string) {
         Ok (d) => d,
         Err(e) => {
-            error!(log.logger, "\t\t{}", e; "connection string" => connection_string);
+            error!(log.logger, "\t{}", e; "connection string" => connection_string);
             drop(log);
             panic!();
         }
@@ -32,12 +32,12 @@ fn main() {
     let result: i32 = match db.add_mm_group("1v1") {
         Ok (r) => r,
         Err(e) => {
-            error!(log.logger, "\t\t{}", e; "group" => "1v1");
+            error!(log.logger, "\t{}", e; "group" => "1v1");
             drop(log);
             panic!();
         }
     };
     if result != 0 {
-        warn!(log.logger, "\t\tgroup already exists in database"; "group" => "1v1")
+        warn!(log.logger, "\tgroup already exists in database"; "group" => "1v1")
     };
 }
