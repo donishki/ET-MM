@@ -15,4 +15,4 @@ su - $(logname) -c "cargo build --manifest-path $BASEDIR/../src/rust/Cargo.toml 
 
 # FIXME: Temporarily run the bot from here to see if it works, build the service in /opt/ later
 # su - et_mm -s /bin/bash -c "$BASEDIR/../src/rust/target/release/et-mm-bot"
-/bin/bash "$BASEDIR/../src/rust/target/release/et-mm-bot"
+$BASEDIR/../src/rust/target/release/et-mm-bot

@@ -35,6 +35,7 @@ BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 printf "Preparing setup scripts..."
 chmod +x $BASEDIR/setup/environment.sh
 chmod +x $BASEDIR/setup/database.sh
+chmod +x $BASEDIR/setup/compile_rust.sh
 printf "\t[OK]\n"
 
 # execute environment setup script
