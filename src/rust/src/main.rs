@@ -29,7 +29,7 @@ fn main() {
     // FIXME: these should be parsed from a configuration file
     //        that should be parsed and loaded into memory.
     info!(log.logger, "\tadding configured match making groups...");
-    let result: i8 = match db.add_mm_group("1v1") {
+    let result: i32 = match db.add_mm_group("1v1") {
         Ok (r) => r,
         Err(e) => {
             error!(log.logger, "\t\t{}", e; "group" => "1v1");

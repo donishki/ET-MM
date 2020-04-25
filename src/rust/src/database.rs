@@ -42,13 +42,13 @@ impl Database {
     /// let result = database::Database::add_mm_group("1v1").unwrap();"
     /// assert_eq!(result, 0)
     /// ```
-    pub fn add_mm_group (&mut self, group_name: &str) -> Result <i8, Box<dyn Error>> {
+    pub fn add_mm_group (&mut self, group_name: &str) -> Result <i32, Box<dyn Error>> {
         let statement = self.client.prepare_typed (
             "SELECT add_match_making_group ( '?' );",
             &[Type::TEXT]
         )?;
         let rows = self.client.query(&statement, &[&group_name])?;
-        let result: i8 = rows[0].get(0);
+        let result: i32 = rows[0].get(0);
         Ok (
             result
         )
