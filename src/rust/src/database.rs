@@ -44,7 +44,7 @@ impl Database {
     /// ```
     pub fn add_mm_group (&mut self, group_name: &str) -> Result <i32, Box<dyn Error>> {
         let statement = self.client.prepare_typed (
-            "SELECT add_match_making_group ( '?' );",
+            "SELECT add_match_making_group ( $1 );",
             &[Type::TEXT]
         )?;
         let rows = self.client.query(&statement, &[&group_name])?;

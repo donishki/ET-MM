@@ -42,20 +42,20 @@ fn main() {
     };
 
     // add match making groups to database
-    info!(log.logger, "\tadding configured match making groups...");
+    info!(log.logger, "\t\tadding configured match making groups...");
     for group in bot.config.mm_groups.iter() {
         let result: i32 = match db.add_mm_group(group) {
             Ok (r) => r,
             Err(e) => {
-                error!(log.logger, "\t{}", e; "group" => "1v1");
+                error!(log.logger, "\t{}", e; "group" => group);
                 drop(log);
                 panic!();
             }
         };
         if result != 0 {
-            warn!(log.logger, "\tgroup already exists in database"; "group" => group);
+            warn!(log.logger, "\t\tgroup already exists in database"; "group" => group);
         } else {
-            info!(log.logger, "\tadded group"; "group" => group);
+            info!(log.logger, "\t\tadded group"; "group" => group);
         }
     }
 }
