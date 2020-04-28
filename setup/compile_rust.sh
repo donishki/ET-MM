@@ -13,6 +13,11 @@ BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 printf "compiling rust source...\n"
 su - $(logname) -c "cargo build --manifest-path $BASEDIR/../src/rust/Cargo.toml --release"
 
-# FIXME: Temporarily run the bot from here to see if it works, build the service in /opt/ later
-# su - et_mm -s /bin/bash -c "$BASEDIR/../src/rust/target/release/et-mm-bot"
-$BASEDIR/../src/rust/target/release/et-mm-bot
+# install the service
+# FIXME: eventually this is where the service will be setup
+#        for now just run the bot
+mkdir /opt/et-mm-bot
+cp $BASEDIR/../runtime/config.cfg /opt/et-mm-bot/config.cfg
+cp $BASEDIR/../src/rust/target/release/et-mm-bot /opt/et-mm-bot/et-mm-bot
+chown -R et_mm:et_mm /opt/et-mm-bot
+$BASEDIR/../src/rust/target/release/et-mm-bot /opt/et-mm-bot/et-mm-bot

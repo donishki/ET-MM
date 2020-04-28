@@ -48,10 +48,3 @@ impl Log {
         }    
     }
 }
-
-// source_log macro to print source code information with log messages
-macro_rules! source_log {
-    ($msg:expr) => {
-        concat!(file!(), ":", line!(), ":", column!(), ": ", $msg);
-    }
-}

@@ -49,7 +49,6 @@ elif [ ! -z "$BUILD" ]; then
 	# install rustup
     printf "Installing Rustup...\n"
 	if [ -z $(su - $(logname) -c "command -v cargo") ]; then
-		printf "Installing Rustup...\n"
 		curl --proto '=https' --tlsv1.2 -sSf -o /tmp/sh.rustup.rs https://sh.rustup.rs
 		chmod +x /tmp/sh.rustup.rs
 		su - $(logname) -c "/tmp/sh.rustup.rs -y"
