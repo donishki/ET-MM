@@ -30,6 +30,8 @@ if !(grep -Fxq "et_mm et_mm et_mm" /var/lib/pgsql/data/pg_ident.conf); then
 fi
 if !(grep -Fxq "local all et_mm peer map=et_mm" /var/lib/pgsql/data/pg_hba.conf); then
     echo "local all et_mm peer map=et_mm" >> /var/lib/pgsql/data/pg_hba.conf
+    # FIXME: next line is a dirty work around to get this going since peer auth doesn't seem to work...
+    sudo sed -i 's/ident/trust/' /var/lib/pgsql/data/pg_hba.conf
 fi
 printf "\t[OK]\n"
 
@@ -41,24 +43,20 @@ printf "\t[OK]\n"
 # create database tables
 printf "Creating database tables...\n"
 for file in /tmp/database/tables/*; do
-    su - et_mm -s /bin/bash -c "psql -d et_mm_db -a -w -f $file"
+    su - et_mm -s /bin/bash -c "psql -d et_mm -a -w -f $file"
 done
 
 # create internal database functions
 printf "Creating internal database functions...\n"
 for file in /tmp/database/functions/internal/*; do
-    su - et_mm -s /bin/bash -c "psql -d et_mm_db -a -w -f $file"
+    su - et_mm -s /bin/bash -c "psql -d et_mm -a -w -f $file"
 done
 
 # create external database functions
 printf "Creating internal database functions...\n"
 for file in /tmp/database/functions/external/*; do
-    su - et_mm -s /bin/bash -c "psql -d et_mm_db -a -w -f $file"
+    su - et_mm -s /bin/bash -c "psql -d et_mm -a -w -f $file"
 done
-
-# create default match making groups
-printf "Creating default match making groups...\n"
-su - et_mm -s /bin/bash -c "psql -d et_mm_db -a -w -f /tmp/database/create_default_match_making_groups.pgsql"
 
 # cleanup
 printf "Cleaning up database scripts..."
