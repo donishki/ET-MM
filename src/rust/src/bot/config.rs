@@ -50,34 +50,33 @@ impl Config {
                     // parse database settings
                     "[database]" => {
                         let tokens: Vec<&str> = line
-                            .split(":")
+                            .split(':')
                             .collect();
-                        match tokens.len() {
-                            2 => match tokens[0] {
+                        if let 2 = tokens.len() {
+                            match tokens[0] {
                                 "host" => db_host = tokens[1]
                                     .trim()
                                     .to_string(),
                                 "user" => db_user = tokens[1]
                                     .trim()
                                     .to_string(),
-                                _ => return Err(format!("unknown key in database section: {}", tokens[0]))?
-                            },
-                            _ => ()
+                                _ => return Err(format!("unknown key in database section: {}", tokens[0]).into())
+                            };
                         };
                     },
                     // parse match making groups
                     "[mm-groups]" => mm_groups.push(line),
-                    _ => return Err(format!("unknown section in file: {}", section_name))?
+                    _ => return Err(format!("unknown section in file: {}", section_name).into())
                 };
             }
         }
         // verify configuration
-        if db_host.len() == 0 {
-            return Err("database information: db_host not in configuration file")?;
-        } else if db_user.len() == 0 {
-            return Err("database information: db_user not in configuration file")?;
-        } else if mm_groups.len() == 0 {
-            return Err("match making group information: no match making groups in configuration file")?;
+        if db_host.is_empty() {
+            return Err("database information: db_host not in configuration file".into());
+        } else if db_user.is_empty() {
+            return Err("database information: db_user not in configuration file".into());
+        } else if mm_groups.is_empty() {
+            return Err("match making group information: no match making groups in configuration file".into());
         }
         // build db_connection_string
         let db_connection_string: String = format!("host={} user={}", db_host, db_user);
@@ -85,7 +84,7 @@ impl Config {
         Ok (
             Self {
                 db_connection_string,
-                mm_groups: mm_groups
+                mm_groups
             }
         )
     }

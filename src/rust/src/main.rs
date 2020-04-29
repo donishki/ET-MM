@@ -2,11 +2,10 @@
 extern crate slog;
 extern crate postgres;
 
-mod database;
 mod bot;
+mod database;
 #[macro_use]
 mod logger;
-
 
 fn main() {
     // initialize logger
@@ -32,7 +31,7 @@ fn main() {
     
     // initialize database object
     info!(log.logger, "initializing database object...");
-    let mut db = match database::Database::construct(&bot.config.db_connection_string) {
+    let db = match database::Database::construct(&bot.config.db_connection_string, &log) {
         Ok (d) => d,
         Err(e) => {
             error!(log.logger, "\t{}", e; "connection string" => bot.config.db_connection_string);
@@ -43,19 +42,12 @@ fn main() {
 
     // add match making groups to database
     info!(log.logger, "adding configured match making groups...");
-    for group in bot.config.mm_groups.iter() {
-        let result: i32 = match db.add_mm_group(group) {
-            Ok (r) => r,
-            Err(e) => {
-                error!(log.logger, "\t{}", e; "group" => group);
-                drop(log);
-                panic!();
-            }
-        };
-        if result != 0 {
-            warn!(log.logger, "\tgroup already exists in database"; "group" => group);
-        } else {
-            info!(log.logger, "\tadded group"; "group" => group);
+    match db.add_mm_groups(&bot.config.mm_groups) {
+        Ok (_) => (),
+        Err(e) => {
+            error!(log.logger, "\t{}", e);
+            drop(log);
+            panic!();
         }
-    }
+    };
 }

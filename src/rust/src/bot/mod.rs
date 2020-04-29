@@ -25,7 +25,7 @@ impl Bot {
         let config = config::Config::read_config(config_path)?;
         Ok (
             Self {
-                config: config
+                config
             }
         ) 
     }
