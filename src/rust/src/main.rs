@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate slog;
 extern crate postgres;
+extern crate serenity;
 
 mod bot;
 mod database;

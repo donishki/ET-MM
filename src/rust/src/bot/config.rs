@@ -11,6 +11,7 @@ use std::io:: {
 ///
 ///     ```
 ///     db_connection_string: string for connecting to postgres database
+///     discord_token: token for discord bot api
 ///     mm_groups: match making groups as defined by configuration file 
 ///     ```
 pub struct Config {
@@ -33,6 +34,7 @@ impl Config {
         let reader = BufReader::new(config);
         let mut db_host: String = String::from("");
         let mut db_user: String = String::from("");
+        let mut discord_token: String = String::from("");
         let mut mm_groups: Vec<String> = Vec::new();
 
         // parse the configuration file
@@ -64,6 +66,20 @@ impl Config {
                             };
                         };
                     },
+                    // parse discord configuration
+                    "[discord]" => {
+                        let tokens: Vec<&str> = line
+                            .split(':')
+                            .collect();
+                        if let 2 = tokens.len() {
+                            match tokens[0] {
+                                "token" => discord_token = tokens[1]
+                                    .trim()
+                                    .to_string(),
+                                _ => return Err(format!("unknown key in discord section: {}", tokens[0]).into())
+                            };
+                        };
+                    },
                     // parse match making groups
                     "[mm-groups]" => mm_groups.push(line),
                     _ => return Err(format!("unknown section in file: {}", section_name).into())
@@ -75,6 +91,8 @@ impl Config {
             return Err("database information: db_host not in configuration file".into());
         } else if db_user.is_empty() {
             return Err("database information: db_user not in configuration file".into());
+        } else if discord_token.is_empty() {
+            return Err("discord information: token not in configuration file".into());
         } else if mm_groups.is_empty() {
             return Err("match making group information: no match making groups in configuration file".into());
         }
