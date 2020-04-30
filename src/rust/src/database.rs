@@ -1,9 +1,9 @@
+use crate::logger::Log;
 use postgres:: {
     Client,
     NoTls,
     types::Type
 };
-use crate::logger::Log;
 use std::error::Error;
 
 /// Database structure
