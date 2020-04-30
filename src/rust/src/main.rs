@@ -35,10 +35,10 @@ fn main() {
     
     // initialize database object
     info!(log.logger, "initializing database object...");
-    let db = match database::Database::construct(&config.db_connection_string, &log) {
-        Ok (d) => d,
+    let database = match database::Database::construct(&config.database_connection_string, &log) {
+        Ok (d) => Arc::new(d),
         Err(e) => {
-            error!(log.logger, "\t{}", e; "connection string" => config.db_connection_string);
+            error!(log.logger, "\t{}", e; "connection string" => config.database_connection_string);
             drop(log);
             panic!();
         }
@@ -46,7 +46,7 @@ fn main() {
 
     // add match making groups to database
     info!(log.logger, "adding configured match making groups...");
-    match db.add_mm_groups(&config.mm_groups) {
+    match database.add_mm_groups(&config.mm_groups) {
         Ok (_) => (),
         Err(e) => {
             error!(log.logger, "\t{}", e);
@@ -57,7 +57,7 @@ fn main() {
 
     // initialize bot
     info!(log.logger, "initializing discord bot...");
-    let mut bot = match bot::Bot::construct(&config.discord_token, &log) {
+    let mut bot = match bot::Bot::construct(&config.discord_token, &database, &log) {
         Ok (b) => b,
         Err(e) => {
             error!(log.logger, "\t{}", e);

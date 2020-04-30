@@ -15,7 +15,7 @@ use std::io:: {
 ///     mm_groups: match making groups as defined by configuration file 
 ///     ```
 pub struct Config {
-    pub db_connection_string: String,
+    pub database_connection_string: String,
     pub discord_token: String,
     pub mm_groups: Vec<String>
 }
@@ -37,7 +37,7 @@ impl Config {
         let mut db_user: String = String::from("");
         let mut discord_token: String = String::from("");
         let mut mm_groups: Vec<String> = Vec::new();
-        
+
         // parse the configuration file
         // FIXME: Pretty tired; no way any of this is idiomatic, but it will work
         //        unless sombody is explicitly trying to break it.
@@ -88,11 +88,11 @@ impl Config {
             return Err("match making group information: no match making groups in configuration file".into());
         }
         // build db_connection_string
-        let db_connection_string: String = format!("host={} user={}", db_host, db_user);
+        let database_connection_string: String = format!("host={} user={}", db_host, db_user);
         // return
         Ok (
             Self {
-                db_connection_string,
+                database_connection_string,
                 discord_token,
                 mm_groups
             }

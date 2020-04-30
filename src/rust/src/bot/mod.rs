@@ -1,8 +1,10 @@
 mod commands;
 
 use commands:: {
-    ping::*
+    ping::*,
+    subscribe::*
 };
+use crate::database::Database;
 use crate::logger::Log;
 use serenity:: {
     client::bridge::gateway::ShardManager,
@@ -44,12 +46,13 @@ impl Bot {
     /// let discord_token = "token";
     /// let mut bot = bot::Bot::construct(&discord_token, &log).unwrap();
     /// ```
-    pub fn construct(discord_token: &str, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub fn construct(discord_token: &str, database: &Arc<Database>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
         let mut client = Client::new(&discord_token, Handler)?;
 
         // pack context data
         {
             let mut data = client.data.write();
+            data.insert::<Database>(Arc::clone(&database));
             data.insert::<Log>(Arc::clone(&log));
             data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         }
@@ -103,19 +106,23 @@ impl EventHandler for Handler {
 
 // General structure for bot framework
 #[group]
-#[commands(ping)]
+#[commands(ping, subscribe)]
 struct General;
 
 // ShardManagerContainer for bot framework
 struct ShardManagerContainer;
 
+// TypeMapKey implementation for Database
+impl TypeMapKey for Database {
+    type Value = Arc<Database>;
+}
 
-//TypeMapKey for ShardManagerContainer context
+// TypeMapKey implementation for ShardManagerContainer
 impl TypeMapKey for ShardManagerContainer {
     type Value = Arc<Mutex<ShardManager>>;
 }
 
-//TypeMapKey for Log context
+// TypeMapKey implementation for Log
 impl TypeMapKey for Log {
     type Value = Arc<Log>;
 }
