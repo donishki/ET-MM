@@ -17,7 +17,6 @@ pub fn subscribe(context: &mut Context, message: &Message, mut args: Args) -> Co
         Some(l) => l,
         None => panic!()
     };
-    // let discord_uuid = message.author.id;
     info!(log.logger, "\tprocessing subscribe command"; "user" => &message.author.name);
     let database = match context.data.read().get::<Database>().cloned() {
         Some(d) => d,
@@ -37,7 +36,7 @@ pub fn subscribe(context: &mut Context, message: &Message, mut args: Args) -> Co
         };
         match result {
             0 => info!(log.logger, "\t\tadded user to group"; "group" => arg),
-            1 => error!(log.logger, "\t\tfailed to add user to database"),
+            1 => warn!(log.logger, "\t\tfailed to add user to database"),
             2 => warn!(log.logger, "\t\tuser already belongs to group"; "group" => arg),
             _ => {
                 error!(log.logger, "unknown database result for add_match_making_user function: {}", result);
