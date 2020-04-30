@@ -35,7 +35,7 @@ fn main() {
     
     // initialize database object
     info!(log.logger, "initializing database object...");
-    let db = match database::Database::construct("test", &log) {
+    let db = match database::Database::construct(&config.db_connection_string, &log) {
         Ok (d) => d,
         Err(e) => {
             error!(log.logger, "\t{}", e; "connection string" => config.db_connection_string);
