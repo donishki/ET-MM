@@ -3,6 +3,7 @@ use serenity:: {
     framework::standard:: {
         Args,
         CommandResult,
+        CommandError,
         macros::command
     },
     model::prelude::*,
@@ -18,5 +19,6 @@ pub fn ping(context: &mut Context, message: &Message, _: Args) -> CommandResult 
     };
     info!(log.logger, "\texecuting ping function...");
     let _ = message.channel_id.say(&context.http, "pong!");
-    Ok(())
+    Err(CommandError::from("XD"))
+    // Ok(())
 }

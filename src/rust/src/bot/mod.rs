@@ -72,6 +72,17 @@ impl Bot {
                 .prefix("!")
             )
             .group(&GENERAL_GROUP)
+            // handle command errors
+            .after(|context, message, command, result| {
+                if let Err(e) = result {
+                    let log = match context.data.read().get::<Log>().cloned() {
+                        Some(l) => l,
+                        None => panic!()
+                    };
+                    error!(log.logger, "\terror in command: {:?}", e; "command" => command);
+                    error!(log.logger, "\tcalled by message: {:?}", message);
+                }
+            })
         );
         Ok (
             Self {
