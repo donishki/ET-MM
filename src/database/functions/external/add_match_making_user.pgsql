@@ -37,7 +37,7 @@ BEGIN
     -- check if group exists
     IF NOT EXISTS (
         SELECT 1
-          FROM users mmg
+          FROM match_making_groups mmg
          WHERE mmg.group_name = LOWER($2)
     )
     THEN
