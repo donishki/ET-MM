@@ -63,7 +63,7 @@ impl Bot {
                 owners_set.insert(o.owner.id);
                 owners_set
             },
-            Err(e) => return Err(format!("couldn't get application info: {}", e).into())
+            Err(e) => return Err(format!("couldn't get application info: \t{}", e).into())
         };
         // initialize framework
         client.with_framework(StandardFramework::new()
@@ -75,12 +75,12 @@ impl Bot {
             // handle command errors
             .after(|context, message, command, result| {
                 if let Err(e) = result {
-                    let log = match context.data.read().get::<Log>().cloned() {
-                        Some(l) => l,
-                        None => panic!()
-                    };
-                    error!(log.logger, "\terror in command: {:?}", e; "command" => command);
-                    error!(log.logger, "\tcalled by message: {:?}", message);
+                    let log = context.data.read().get::<Log>().cloned().unwrap();
+                    error!(log.logger, "\terror in command: {:?}", e;
+                        "command" => command,
+                        "message" => &message.content,
+                        "author"  => &message.author.name
+                    );
                 }
             })
         );
@@ -99,18 +99,12 @@ struct Handler;
 impl EventHandler for Handler {
     // handle ready event
     fn ready(&self, context: Context, ready: Ready) {
-        let log = match context.data.read().get::<Log>().cloned() {
-            Some(l) => l,
-            None => panic!()
-        };
+        let log = context.data.read().get::<Log>().cloned().unwrap();
         info!(log.logger, "\t{} connected to discord...", ready.user.name);
     }
     // handle resume event
     fn resume(&self, context: Context, _: ResumedEvent) {
-        let log = match context.data.read().get::<Log>().cloned() {
-            Some(l) => l,
-            None => panic!()
-        };
+        let log = context.data.read().get::<Log>().cloned().unwrap();
         info!(log.logger, "\tresumed...");
     }
 }

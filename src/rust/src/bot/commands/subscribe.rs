@@ -1,9 +1,9 @@
 use crate::database::Database;
-use crate::logger::Log;
 use serenity:: {
     framework::standard:: {
         Args,
         CommandResult,
+        CommandError,
         macros::command
     },
     model::prelude::*,
@@ -12,39 +12,39 @@ use serenity:: {
 
 #[command]
 // subscribe user calling command to the specified match making group
-pub fn subscribe(context: &mut Context, message: &Message, mut args: Args) -> CommandResult {
-    let log = match context.data.read().get::<Log>().cloned() {
-        Some(l) => l,
-        None => panic!()
-    };
-    info!(log.logger, "\tprocessing subscribe command"; "user" => &message.author.name);
-    let database = match context.data.read().get::<Database>().cloned() {
-        Some(d) => d,
+pub fn subscribe(context: &mut Context, message: &Message, args: Args) -> CommandResult {
+    let database = context.data.read().get::<Database>().cloned().unwrap();
+    let reply;
+    if args.len() != 1 {
+        // FIXME: print builtin help for command here.
+        return Err(CommandError::from("invalid number of arguments."));
+    }
+    let group = match args.current() {
+        Some(a) => a,
         None => {
-            error!(log.logger, "\t\tfailed to invoke database object");
-            return Ok(());
+            reply = format!("");
+            let _ = message.channel_id.say(&context.http, &reply);
+            return Err(CommandError::from(reply));
         }
     };
-    for arg in args.iter::<String>() {
-        let arg = arg.unwrap();
-        let result = match database.add_mm_user(message.author.id.as_u64(), &arg) {
-            Ok (r) => r,
-            Err(e) => {
-                error!(log.logger, "\t\t{}", e);
-                return Ok(());
-            }
-        };
-        match result {
-            0 => info!(log.logger, "\t\tadded user to group"; "group" => arg),
-            1 => warn!(log.logger, "\t\tfailed to add user to database"),
-            2 => warn!(log.logger, "\t\tuser already belongs to group"; "group" => arg),
-            _ => {
-                error!(log.logger, "unknown database result for add_match_making_user function: {}", result);
-                return Ok(());
-            }
-        };
-    }
-
-    // let _ = message.channel_id.say(&context.http, "pong!");
-    Ok(())
+    let result = match database.add_mm_user(*message.author.id.as_u64(), &group) {
+        Ok (r) => r,
+        Err(e) => {
+            reply = format!("database error: {}", e);
+            return Err(CommandError::from(reply))
+        }
+    };
+    match result {
+        0 => {
+            reply = format!("`{}` has been subscribed to the `{}` match making group.", message.author.name, group);
+            let _ = message.channel_id.say(&context.http, &reply);
+            return Ok(());
+        },
+        1 => reply = format!("failed to add `{}` to the database.", message.author.name),
+        2 => reply = format!("match making group: `{}` does not exist.", group),
+        3 => reply = format!("`{}` is already registered to match making group: `{}`", message.author.name, group),
+        _ => reply = format!("database returned an unkown result when calling `add_match_making_user()`: `{}`", result)
+    };
+    let _ = message.channel_id.say(&context.http, &reply);
+    Err(CommandError::from(reply))
 }

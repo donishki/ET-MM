@@ -35,7 +35,7 @@ impl Database {
     /// ```
     /// let db = database::Database::construct("host=localhost user=user").unwrap();"
     /// ```
-    pub fn construct (connection_string: &String, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub fn construct (connection_string: &str, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
         Client::connect(&connection_string, NoTls)?;
         Ok (
             Self {
@@ -46,8 +46,11 @@ impl Database {
     }
     /// adds specified match making groups to the database for a given 
     /// vector of groups. this is done by calling the add_matchmaking_groups()
-    /// stored psql function. the database returns 0 on success or 1 on failure
-    /// due to the group already existing. 
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: match making group already exists
     ///
     /// # Example
     ///
@@ -77,19 +80,23 @@ impl Database {
     }
     /// adds user to specified match making group in the database for a given 
     /// discord uuid and group name. this is done by calling the add_match_making_user()
-    /// stored psql function. the database returns 0 on success, 1 on failure due to
-    /// failure to add the specified user to the database, or 2 on failure due to the
-    /// user already belonging to the specified group.
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: failure to add user to database
+    ///     2: specified match making group does not exist
+    ///     3: user is already registered for this group
     ///
     /// #FIXME: We have to cast the u64 to a string here since the postgres lib can't
-    ///         convert a u64 to NUMERIC 
+    ///         convert a u64 to NUMERIC. Maybe there is a better way to do this.
     ///
     /// # Example
     ///
     /// ```
     /// database::Database::add_mm_user("uuid", "1v1").unwrap();"
     /// ```
-    pub fn add_mm_user (&self, discord_uuid: &u64, group: &str) -> Result <i32, Box<dyn Error>> {
+    pub fn add_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
         let mut client = Client::connect(&self.connection_string, NoTls)?;
         let statement = client.prepare_typed (
             "SELECT add_match_making_user ( $1, $2 );",
@@ -97,13 +104,5 @@ impl Database {
         )?;
         let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
         Ok (rows[0].get(0))
-        // match result {
-        //     0 => info!(self.log.logger, "\tadded user to group"; "user" => discord_uuid, "group" => group),
-        //     1 => warn!(self.log.logger, "\tfailed to add user to database"; "user" => discord_uuid),
-        //     2 => warn!(self.log.logger, "\tuser already belongs to group"; "user" => discord_uuid, "group" => group),
-        //     _ => return Err(format!("unknown database result for add_match_making_user function: {}", result).into())
-        // };
-        // return 
-        // Ok (())
     }
 }

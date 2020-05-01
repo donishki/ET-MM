@@ -8,7 +8,8 @@
  * returns:
  *     success: 0
  *     failure (failed to add user to database): 1
- *     failure (user is already added to group): 2
+ *     failure (group does not exist): 2
+ *     failure (user is already added to group): 3
  */
 CREATE OR REPLACE FUNCTION add_match_making_user (
     discord_uuid TEXT,
@@ -33,6 +34,15 @@ BEGIN
             RETURN 1;
         END IF;
     END IF;
+    -- check if group exists
+    IF NOT EXISTS (
+        SELECT 1
+          FROM users mmg
+         WHERE mmg.group_name = LOWER($2)
+    )
+    THEN
+        RETURN 2;
+    END IF;
     -- check if user and group combination already exists
     IF EXISTS (
         SELECT 1
@@ -43,7 +53,7 @@ BEGIN
            AND mmg.group_name = LOWER($2)
     )
     THEN
-        RETURN 2;
+        RETURN 3;
     END IF;
     -- insert values into table
     SELECT u.user_id
