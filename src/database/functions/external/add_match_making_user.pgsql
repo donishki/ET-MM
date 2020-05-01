@@ -70,9 +70,11 @@ BEGIN
     THEN
         UPDATE match_making_users mmu
            SET mmu.subscribed = TRUE
-          FROM users u ON mmu.user_id = u.user_id
-         INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
-         WHERE u.discord_uuid = LOWER($1)
+          FROM users u,
+               match_making_groups mmg
+         WHERE mmu.user_id = u.user_id
+           AND mmu.group_id = mmg.group_id
+           AND u.discord_uuid = LOWER($1)
            AND mmg.group_name = LOWER($2);
         RETURN 0;
     END IF;
