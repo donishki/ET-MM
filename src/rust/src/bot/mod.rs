@@ -76,7 +76,7 @@ impl Bot {
             .after(|context, message, command, result| {
                 if let Err(e) = result {
                     let log = context.data.read().get::<Log>().cloned().unwrap();
-                    error!(log.logger, "\terror in command: {:?}", Some(e);
+                    error!(log.logger, "\terror in command: {:?}", e;
                         "command" => command,
                         "message" => &message.content,
                         "author"  => &message.author.name

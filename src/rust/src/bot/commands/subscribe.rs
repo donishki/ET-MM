@@ -11,18 +11,15 @@ use serenity:: {
 };
 
 #[command]
-// subscribe user calling command to the specified match making group
-pub fn subscribe(context: &mut Context, message: &Message, args: Args) -> CommandResult {
+// subscribe the user calling this function to the match making group matching the name
+// of the channel that this function was called from
+pub fn subscribe(context: &mut Context, message: &Message, _: Args) -> CommandResult {
     let database = context.data.read().get::<Database>().cloned().unwrap();
     let reply;
-    if args.len() != 1 {
-        // FIXME: print builtin help for command here.
-        return Err(CommandError::from("invalid number of arguments."));
-    }
-    let group = match args.current() {
-        Some(a) => a,
+    let group = match message.channel_id.name(&context) {
+        Some(g) => g,
         None => {
-            reply = format!("");
+            reply = format!("error retrieving channel name.");
             let _ = message.channel_id.say(&context.http, &reply);
             return Err(CommandError::from(reply));
         }
