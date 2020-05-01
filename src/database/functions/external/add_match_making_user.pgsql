@@ -43,7 +43,7 @@ BEGIN
     THEN
         RETURN 2;
     END IF;
-    -- check if user and group combination already exists
+    -- check if user and group combination already exists and is subscribed
     IF EXISTS (
         SELECT 1
           FROM match_making_users mmu
@@ -51,9 +51,30 @@ BEGIN
          INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
          WHERE u.discord_uuid = LOWER($1)
            AND mmg.group_name = LOWER($2)
+           AND mmu.subscribed = TRUE
     )
     THEN
         RETURN 3;
+    END IF;
+    -- check if user and group combination already exists and is not subscribed
+    IF EXISTS (
+        SELECT 1
+          FROM match_making_users mmu
+         INNER JOIN users u ON mmu.user_id = u.user_id
+         INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
+         WHERE u.discord_uuid = LOWER($1)
+           AND mmg.group_name = LOWER($2)
+           AND mmu.subscribed = FALSE
+    )
+    -- resubscribe them if so
+    THEN
+        UPDATE match_making_users mmu
+           SET mmu.subscribed = TRUE
+          FROM users u ON mmu.user_id = u.user_id
+         INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
+         WHERE u.discord_uuid = LOWER($1)
+           AND mmg.group_name = LOWER($2);
+        RETURN 0;
     END IF;
     -- insert values into table
     SELECT u.user_id
@@ -64,8 +85,8 @@ BEGIN
       FROM match_making_groups mmg
      WHERE mmg.group_name = LOWER($2)
       INTO group_id;
-    INSERT INTO match_making_users (user_id, group_id)
-        VALUES (user_id, group_id);
+    INSERT INTO match_making_users (user_id, group_id, subscribed)
+        VALUES (user_id, group_id, TRUE);
     RETURN 0;
 END;
 $$ LANGUAGE plpgsql;

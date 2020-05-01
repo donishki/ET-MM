@@ -31,6 +31,7 @@ pub fn subscribe(context: &mut Context, message: &Message, args: Args) -> Comman
         Ok (r) => r,
         Err(e) => {
             reply = format!("database error: {}", e);
+            let _ = message.channel_id.say(&context.http, &reply);
             return Err(CommandError::from(reply))
         }
     };
