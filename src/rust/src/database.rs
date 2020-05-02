@@ -1,10 +1,14 @@
+use crate::logger::Log;
 use postgres:: {
     Client,
     NoTls,
     types::Type
 };
-use crate::logger::Log;
-use std::error::Error;
+use std:: {
+    error::Error,
+    sync::Arc
+};
+
 
 /// Database structure
 ///
@@ -14,33 +18,39 @@ use std::error::Error;
 ///     connection_string: reference to database connection string
 ///     logger: reference to application logger
 ///     ```
-pub struct Database<'a> {
-    connection_string: &'a str,
-    log: &'a Log
+pub struct Database {
+    connection_string: String,
+    log: Arc<Log>
 }
 
 // Database implmentation
-impl <'a>Database<'a> {
+impl Database {
     /// connects to postgresql and constructs the database object.
+    /// FIXME: uses a copy since lifetime constraints are too tricky
+    ///        when later used with the serenity crate. Not a big deal
+    ///        to be honest.
     ///
     /// # Example
     ///
     /// ```
     /// let db = database::Database::construct("host=localhost user=user").unwrap();"
     /// ```
-    pub fn construct (connection_string: &'a str, log: &'a Log) -> Result<Self, Box<dyn Error>> {
-        Client::connect(connection_string, NoTls)?;
+    pub fn construct (connection_string: &str, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+        Client::connect(&connection_string, NoTls)?;
         Ok (
             Self {
-                connection_string,
-                log
+                connection_string: connection_string.to_string(),
+                log: Arc::clone(&log)
             }
         )
     }
     /// adds specified match making groups to the database for a given 
     /// vector of groups. this is done by calling the add_matchmaking_groups()
-    /// stored psql function. the database returns 0 on success or 1 on failure
-    /// due to the group already existing. 
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: match making group already exists
     ///
     /// # Example
     ///
@@ -52,7 +62,7 @@ impl <'a>Database<'a> {
     /// database::Database::add_mm_groups(groups).unwrap();"
     /// ```
     pub fn add_mm_groups (&self, groups: &[String]) -> Result <(), Box<dyn Error>> {
-        let mut client = Client::connect(self.connection_string, NoTls)?;
+        let mut client = Client::connect(&self.connection_string, NoTls)?;
         for group in groups.iter() {
             let statement = client.prepare_typed (
                 "SELECT add_match_making_group ( $1 );",
@@ -63,9 +73,63 @@ impl <'a>Database<'a> {
             match result {
                 0 => info!(self.log.logger, "\tadded group"; "group" => group),
                 1 => warn!(self.log.logger, "\tgroup already exists in database"; "group" => group),
-                _ => return Err(format!("unknown database result for add_matchmaking_groups function: {}", result).into())
+                _ => return Err(format!("unknown database result for add_match_making_groups function: {}", result).into())
             };
         }
         Ok (())
+    }
+    /// adds user to specified match making group in the database for a given 
+    /// discord uuid and group name. this is done by calling the add_match_making_user()
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: failure to add user to database
+    ///     2: specified match making group does not exist
+    ///     3: user is already registered for this group
+    ///
+    /// #FIXME: We have to cast the u64 to a string here since the postgres lib can't
+    ///         convert a u64 to NUMERIC. Maybe there is a better way to do this.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// database::Database::add_mm_user("uuid", "1v1").unwrap();"
+    /// ```
+    pub fn add_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
+        let mut client = Client::connect(&self.connection_string, NoTls)?;
+        let statement = client.prepare_typed (
+            "SELECT add_match_making_user ( $1, $2 );",
+            &[Type::TEXT, Type::TEXT]
+        )?;
+        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
+        Ok (rows[0].get(0))
+    }
+    /// removes user from specified match making group in the database for a given 
+    /// discord uuid and group name. this is done by calling the remove_match_making_user()
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: failure to add user to database
+    ///     2: specified match making group does not exist
+    ///     3: user is not registered for this group
+    ///
+    /// #FIXME: We have to cast the u64 to a string here since the postgres lib can't
+    ///         convert a u64 to NUMERIC. Maybe there is a better way to do this.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// database::Database::remove_mm_user("uuid", "1v1").unwrap();"
+    /// ```
+    pub fn remove_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
+        let mut client = Client::connect(&self.connection_string, NoTls)?;
+        let statement = client.prepare_typed (
+            "SELECT remove_match_making_user ( $1, $2 );",
+            &[Type::TEXT, Type::TEXT]
+        )?;
+        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
+        Ok (rows[0].get(0))
     }
 }

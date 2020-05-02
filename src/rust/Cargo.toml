@@ -11,3 +11,7 @@ postgres   = "0.17.2"
 slog       = { version = "2.4.1", features = ["release_max_level_info"] }
 slog-async = "2.3.0"
 slog-term  = "2.4.0"
+
+[dependencies.serenity]
+version  = "0.8.6"
+features = ["cache", "framework", "standard_framework", "rustls_backend"]

@@ -9,9 +9,9 @@
  *     success: 0
  *     failure (failed to add user to database): 1
  *     failure (group does not exist): 2
- *     failure (user is already added to group): 3
+ *     failure (user is not added to group): 3
  */
-CREATE OR REPLACE FUNCTION add_match_making_user (
+CREATE OR REPLACE FUNCTION remove_match_making_user (
     discord_uuid TEXT,
     group_name TEXT
 )
@@ -33,6 +33,7 @@ BEGIN
         IF i != 0 THEN
             RETURN 1;
         END IF;
+        RETURN 3;
     END IF;
     -- check if group exists
     IF NOT EXISTS (
@@ -42,19 +43,6 @@ BEGIN
     )
     THEN
         RETURN 2;
-    END IF;
-    -- check if user and group combination already exists and is subscribed
-    IF EXISTS (
-        SELECT 1
-          FROM match_making_users mmu
-         INNER JOIN users u ON mmu.user_id = u.user_id
-         INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
-         WHERE u.discord_uuid = LOWER($1)
-           AND mmg.group_name = LOWER($2)
-           AND mmu.subscribed = TRUE
-    )
-    THEN
-        RETURN 3;
     END IF;
     -- check if user and group combination already exists and is not subscribed
     IF EXISTS (
@@ -66,10 +54,23 @@ BEGIN
            AND mmg.group_name = LOWER($2)
            AND mmu.subscribed = FALSE
     )
-    -- resubscribe them if so
+    THEN
+        RETURN 3;
+    END IF;
+    -- check if user and group combination already exists and is subscribed
+    IF EXISTS (
+        SELECT 1
+          FROM match_making_users mmu
+         INNER JOIN users u ON mmu.user_id = u.user_id
+         INNER JOIN match_making_groups mmg ON mmu.group_id = mmg.group_id
+         WHERE u.discord_uuid = LOWER($1)
+           AND mmg.group_name = LOWER($2)
+           AND mmu.subscribed = TRUE
+    )
+    -- unsubscribe them if so
     THEN
         UPDATE match_making_users mmu
-           SET subscribed = TRUE
+           SET subscribed = FALSE
           FROM users u,
                match_making_groups mmg
          WHERE mmu.user_id = u.user_id
@@ -78,17 +79,9 @@ BEGIN
            AND mmg.group_name = LOWER($2);
         RETURN 0;
     END IF;
-    -- insert values into table
-    SELECT u.user_id
-      FROM users u
-     WHERE u.discord_uuid = LOWER($1)
-      INTO user_id;
-    SELECT mmg.group_id
-      FROM match_making_groups mmg
-     WHERE mmg.group_name = LOWER($2)
-      INTO group_id;
-    INSERT INTO match_making_users (user_id, group_id, subscribed)
-        VALUES (user_id, group_id, TRUE);
-    RETURN 0;
+    -- FIXME: This is a pretty lazy catchall but should be fine as the only other
+    --        situations not accounted for are ones where the user cannot be
+    --        subscribed to the specified group.
+    RETURN 3;
 END;
 $$ LANGUAGE plpgsql;
