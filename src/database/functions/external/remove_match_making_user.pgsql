@@ -33,6 +33,7 @@ BEGIN
         IF i != 0 THEN
             RETURN 1;
         END IF;
+        RETURN 3;
     END IF;
     -- check if group exists
     IF NOT EXISTS (
@@ -78,5 +79,9 @@ BEGIN
            AND mmg.group_name = LOWER($2);
         RETURN 0;
     END IF;
+    -- FIXME: This is a pretty lazy catchall but should be fine as the only other
+    --        situations not accounted for are ones where the user cannot be
+    --        subscribed to the specified group.
+    RETURN 3;
 END;
 $$ LANGUAGE plpgsql;
