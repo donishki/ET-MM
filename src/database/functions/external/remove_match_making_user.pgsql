@@ -11,7 +11,7 @@
  *     failure (group does not exist): 2
  *     failure (user is not added to group): 3
  */
-CREATE OR REPLACE FUNCTION add_match_making_user (
+CREATE OR REPLACE FUNCTION remove_match_making_user (
     discord_uuid TEXT,
     group_name TEXT
 )
@@ -69,7 +69,7 @@ BEGIN
     -- unsubscribe them if so
     THEN
         UPDATE match_making_users mmu
-           SET mmu.subscribed = FALSE
+           SET subscribed = FALSE
           FROM users u,
                match_making_groups mmg
          WHERE mmu.user_id = u.user_id

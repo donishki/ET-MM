@@ -69,7 +69,7 @@ BEGIN
     -- resubscribe them if so
     THEN
         UPDATE match_making_users mmu
-           SET mmu.subscribed = TRUE
+           SET subscribed = TRUE
           FROM users u,
                match_making_groups mmg
          WHERE mmu.user_id = u.user_id

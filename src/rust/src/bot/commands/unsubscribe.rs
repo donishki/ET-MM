@@ -27,7 +27,7 @@ pub fn unsubscribe(context: &mut Context, message: &Message, _: Args) -> Command
     let result = match database.remove_mm_user(*message.author.id.as_u64(), &group) {
         Ok (r) => r,
         Err(e) => {
-            reply = format!("database error: {}", e);
+            reply = format!("{}", e);
             let _ = message.channel_id.say(&context.http, &reply);
             return Err(CommandError::from(reply))
         }
