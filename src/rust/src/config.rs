@@ -11,10 +11,12 @@ use std::io:: {
 ///
 ///     ```
 ///     db_connection_string: string for connecting to postgres database
+///     discord_token: token for discord bot api
 ///     mm_groups: match making groups as defined by configuration file 
 ///     ```
 pub struct Config {
-    pub db_connection_string: String,
+    pub database_connection_string: String,
+    pub discord_token: String,
     pub mm_groups: Vec<String>
 }
 
@@ -26,13 +28,14 @@ impl Config {
     /// # Example
     ///
     /// ```
-    /// let db = config::Config::readconfig("config.cfg").unwrap();"
+    /// let db = config::Config::read("config.cfg").unwrap();"
     /// ```
-    pub fn read_config (path: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn construct (path: &str) -> Result<Self, Box<dyn Error>> {
         let config = File::open(path)?;
         let reader = BufReader::new(config);
         let mut db_host: String = String::from("");
         let mut db_user: String = String::from("");
+        let mut discord_token: String = String::from("");
         let mut mm_groups: Vec<String> = Vec::new();
 
         // parse the configuration file
@@ -49,18 +52,22 @@ impl Config {
                 match section_name.as_ref() {
                     // parse database settings
                     "[database]" => {
-                        let tokens: Vec<&str> = line
-                            .split(':')
-                            .collect();
+                        let tokens: Vec<&str> = line.split(':').collect();
                         if let 2 = tokens.len() {
                             match tokens[0] {
-                                "host" => db_host = tokens[1]
-                                    .trim()
-                                    .to_string(),
-                                "user" => db_user = tokens[1]
-                                    .trim()
-                                    .to_string(),
+                                "host" => db_host = tokens[1].trim().to_string(),
+                                "user" => db_user = tokens[1].trim().to_string(),
                                 _ => return Err(format!("unknown key in database section: {}", tokens[0]).into())
+                            };
+                        };
+                    },
+                    // parse discord configuration
+                    "[discord]" => {
+                        let tokens: Vec<&str> = line.split(':').collect();
+                        if let 2 = tokens.len() {
+                            match tokens[0] {
+                                "token" => discord_token = tokens[1].trim().to_string(),
+                                _ => return Err(format!("unknown key in discord section: {}", tokens[0]).into())
                             };
                         };
                     },
@@ -75,15 +82,18 @@ impl Config {
             return Err("database information: db_host not in configuration file".into());
         } else if db_user.is_empty() {
             return Err("database information: db_user not in configuration file".into());
+        } else if discord_token.is_empty() {
+            return Err("discord information: token not in configuration file".into());
         } else if mm_groups.is_empty() {
             return Err("match making group information: no match making groups in configuration file".into());
         }
         // build db_connection_string
-        let db_connection_string: String = format!("host={} user={}", db_host, db_user);
+        let database_connection_string: String = format!("host={} user={}", db_host, db_user);
         // return
         Ok (
             Self {
-                db_connection_string,
+                database_connection_string,
+                discord_token,
                 mm_groups
             }
         )

@@ -20,4 +20,3 @@ mkdir /opt/et-mm-bot
 cp $BASEDIR/../runtime/config.cfg /opt/et-mm-bot/config.cfg
 cp $BASEDIR/../src/rust/target/release/et-mm-bot /opt/et-mm-bot/et-mm-bot
 chown -R et_mm:et_mm /opt/et-mm-bot
-$BASEDIR/../src/rust/target/release/et-mm-bot /opt/et-mm-bot/et-mm-bot
