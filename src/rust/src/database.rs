@@ -105,4 +105,31 @@ impl Database {
         let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
         Ok (rows[0].get(0))
     }
+    /// removes user from specified match making group in the database for a given 
+    /// discord uuid and group name. this is done by calling the remove_match_making_user()
+    /// stored function.
+    ///
+    /// the stored function returns the following:
+    ///     0: success
+    ///     1: failure to add user to database
+    ///     2: specified match making group does not exist
+    ///     3: user is not registered for this group
+    ///
+    /// #FIXME: We have to cast the u64 to a string here since the postgres lib can't
+    ///         convert a u64 to NUMERIC. Maybe there is a better way to do this.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// database::Database::remove_mm_user("uuid", "1v1").unwrap();"
+    /// ```
+    pub fn remove_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
+        let mut client = Client::connect(&self.connection_string, NoTls)?;
+        let statement = client.prepare_typed (
+            "SELECT remove_match_making_user ( $1, $2 );",
+            &[Type::TEXT, Type::TEXT]
+        )?;
+        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
+        Ok (rows[0].get(0))
+    }
 }

@@ -2,7 +2,8 @@ mod commands;
 
 use commands:: {
     ping::*,
-    subscribe::*
+    subscribe::*,
+    unsubscribe::*
 };
 use crate::database::Database;
 use crate::logger::Log;
@@ -111,7 +112,7 @@ impl EventHandler for Handler {
 
 // General structure for bot framework
 #[group]
-#[commands(ping, subscribe)]
+#[commands(ping, subscribe, unsubscribe)]
 struct General;
 
 // ShardManagerContainer for bot framework
