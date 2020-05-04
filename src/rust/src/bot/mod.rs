@@ -1,12 +1,13 @@
 mod commands;
 
+use crate::config::MMGroup;
+use crate::database::Database;
+use crate::logger::Log;
 use commands:: {
     ping::*,
     subscribe::*,
     unsubscribe::*
 };
-use crate::database::Database;
-use crate::logger::Log;
 use serenity:: {
     client::bridge::gateway::ShardManager,
     framework:: {
@@ -47,7 +48,7 @@ impl Bot {
     /// let discord_token = "token";
     /// let mut bot = bot::Bot::construct(&discord_token, &log).unwrap();
     /// ```
-    pub fn construct(discord_token: &str, database: &Arc<Database>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub fn construct(discord_token: &str, database: &Arc<Database>, log: &Arc<Log>, mm_groups: &Arc<Vec<MMGroup>>) -> Result<Self, Box<dyn Error>> {
         let mut client = Client::new(&discord_token, Handler)?;
 
         // pack context data
@@ -55,6 +56,7 @@ impl Bot {
             let mut data = client.data.write();
             data.insert::<Database>(Arc::clone(&database));
             data.insert::<Log>(Arc::clone(&log));
+            data.insert::<MMGroup>(Arc::clone(&mm_groups));
             data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         }
         // set owners
@@ -118,17 +120,22 @@ struct General;
 // ShardManagerContainer for bot framework
 struct ShardManagerContainer;
 
-// TypeMapKey implementation for Database
-impl TypeMapKey for Database {
-    type Value = Arc<Database>;
-}
-
 // TypeMapKey implementation for ShardManagerContainer
 impl TypeMapKey for ShardManagerContainer {
     type Value = Arc<Mutex<ShardManager>>;
 }
 
+// TypeMapKey implementation for Database
+impl TypeMapKey for Database {
+    type Value = Arc<Database>;
+}
+
 // TypeMapKey implementation for Log
 impl TypeMapKey for Log {
     type Value = Arc<Log>;
+}
+
+// TypeMapKey implementation for MMGroup
+impl TypeMapKey for MMGroup {
+    type Value = Arc<Vec<MMGroup>>;
 }

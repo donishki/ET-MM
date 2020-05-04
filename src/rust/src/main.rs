@@ -57,7 +57,7 @@ fn main() {
 
     // initialize bot
     info!(log.logger, "initializing discord bot...");
-    let mut bot = match bot::Bot::construct(&config.discord_token, &database, &log) {
+    let mut bot = match bot::Bot::construct(&config.discord_token, &database, &log, &config.mm_groups) {
         Ok (b) => b,
         Err(e) => {
             error!(log.logger, "\t{}", e);

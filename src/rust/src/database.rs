@@ -1,3 +1,4 @@
+use crate::config::MMGroup;
 use crate::logger::Log;
 use postgres:: {
     Client,
@@ -19,14 +20,14 @@ use std:: {
 ///     logger: reference to application logger
 ///     ```
 pub struct Database {
-    connection_string: String,
+    connection_string: Arc<String>,
     log: Arc<Log>
 }
 
 // Database implmentation
 impl Database {
-    /// connects to postgresql and constructs the database object.
-    /// FIXME: uses a copy since lifetime constraints are too tricky
+    /// connects to postgresql (just to test) and constructs the database object.
+    /// FIXME: uses atomic clone since lifetime constraints are too tricky
     ///        when later used with the serenity crate. Not a big deal
     ///        to be honest.
     ///
@@ -35,11 +36,11 @@ impl Database {
     /// ```
     /// let db = database::Database::construct("host=localhost user=user").unwrap();"
     /// ```
-    pub fn construct (connection_string: &str, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub fn construct (connection_string: &Arc<String>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
         Client::connect(&connection_string, NoTls)?;
         Ok (
             Self {
-                connection_string: connection_string.to_string(),
+                connection_string: Arc::clone(&connection_string),
                 log: Arc::clone(&log)
             }
         )
@@ -61,9 +62,10 @@ impl Database {
     /// groups.push("6v6");
     /// database::Database::add_mm_groups(groups).unwrap();"
     /// ```
-    pub fn add_mm_groups (&self, groups: &[String]) -> Result <(), Box<dyn Error>> {
+    pub fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
         let mut client = Client::connect(&self.connection_string, NoTls)?;
         for group in groups.iter() {
+            let group = &group.name;
             let statement = client.prepare_typed (
                 "SELECT add_match_making_group ( $1 );",
                 &[Type::TEXT]
