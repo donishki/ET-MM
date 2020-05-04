@@ -113,14 +113,14 @@ impl EventHandler for Handler {
             info!(log.logger, "\tcreating channels and roles for guild {}...", i);
             //create channels
             let channels = guild.channels(&context.http).unwrap();
-            for group in mm_groups.iter() {
+            'outer: for group in mm_groups.iter() {
                 for channel in channels.values() {
                     if channel.kind == ChannelType::Text && channel.name == group.name {
-                        info!(log.logger, "\t\tgroup: {} already exists, skipping...", group.name);
-                        break;
+                        info!(log.logger, "\t\tgroup: {} already exists, skipping", group.name);
+                        break 'outer;
                     }
                 }
-                info!(log.logger, "\t\tchannel: {} added to guild: {}...", group.name, i);
+                info!(log.logger, "\t\tchannel: {} added to guild: {}", group.name, i);
                 let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
             }
         }
