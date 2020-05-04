@@ -15,6 +15,7 @@ use serenity:: {
         standard::macros::group
     },
     model:: {
+        channel::ChannelType,
         event::ResumedEvent,
         gateway::Ready
     },
@@ -104,6 +105,25 @@ impl EventHandler for Handler {
     fn ready(&self, context: Context, ready: Ready) {
         let log = context.data.read().get::<Log>().cloned().unwrap();
         info!(log.logger, "\t{} connected to discord...", ready.user.name);
+
+        // create match making group channels and roles
+        let mm_groups = context.data.read().get::<MMGroup>().cloned().unwrap();
+        for (i, guild) in ready.guilds.iter().enumerate() {
+            let guild = guild.id();
+            info!(log.logger, "\tcreating channels and roles for guild {}...", i);
+            //create channels
+            let channels = guild.channels(&context.http).unwrap();
+            for group in mm_groups.iter() {
+                for channel in channels.values() {
+                    if channel.kind == ChannelType::Text && channel.name == group.name {
+                        info!(log.logger, "\t\tgroup: {} already exists, skipping...", group.name);
+                        break;
+                    }
+                }
+                info!(log.logger, "\t\tchannel: {} added to guild: {}...", group.name, i);
+                let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
+            }
+        }
     }
     // handle resume event
     fn resume(&self, context: Context, _: ResumedEvent) {
