@@ -1,4 +1,7 @@
-use crate::config::MMGroup;
+use crate::config:: {
+    Config,
+    MMGroup
+};
 use crate::logger::Log;
 use postgres:: {
     Client,
@@ -34,13 +37,14 @@ impl Database {
     /// # Example
     ///
     /// ```
-    /// let db = database::Database::construct("host=localhost user=user").unwrap();"
+    /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
+    /// let db = database::Database::construct(&config).unwrap();"
     /// ```
-    pub fn construct (connection_string: &Arc<String>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
-        Client::connect(&connection_string, NoTls)?;
+    pub fn construct (config: &Config, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+        Client::connect(&config.database_connection_string, NoTls)?;
         Ok (
             Self {
-                connection_string: Arc::clone(&connection_string),
+                connection_string: Arc::clone(&config.database_connection_string),
                 log: Arc::clone(&log)
             }
         )

@@ -11,7 +11,9 @@ postgres   = "0.17.2"
 slog       = { version = "2.4.1", features = ["release_max_level_info"] }
 slog-async = "2.3.0"
 slog-term  = "2.4.0"
+tokio      = { version = "0.2", features = ["macros"] }
 
 [dependencies.serenity]
-version  = "0.8.6"
+git      = "https://github.com/Lakelezz/serenity/"
+branch   = "await"
 features = ["cache", "framework", "standard_framework", "rustls_backend"]

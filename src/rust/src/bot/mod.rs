@@ -1,21 +1,33 @@
 mod commands;
 
-use crate::config::MMGroup;
+use crate::config:: {
+    Config,
+    MMGroup
+};
 use crate::database::Database;
 use crate::logger::Log;
 use commands:: {
-    ping::*,
     subscribe::*,
     unsubscribe::*
 };
 use serenity:: {
-    client::bridge::gateway::ShardManager,
+    async_trait,
     framework:: {
         StandardFramework,
-        standard::macros::group
+        standard:: {
+            CommandResult,
+            macros:: {
+                group,
+                hook
+            }
+        }
     },
+    http::Http,
     model:: {
-        channel::ChannelType,
+        channel:: {
+            ChannelType,
+            Message
+        },
         event::ResumedEvent,
         gateway::Ready
     },
@@ -35,7 +47,7 @@ use std:: {
 ///     client: serenity discord client
 ///     ```
 pub struct Bot {
-    pub client: Client
+    client: Client
 }
 
 // Bot implementation
@@ -46,103 +58,110 @@ impl Bot {
     ///
     /// ```
     /// let log = Arc::new(logger::Log::new());
-    /// let discord_token = "token";
-    /// let mut bot = bot::Bot::construct(&discord_token, &log).unwrap();
+    /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
+    /// let database = database::Database::construct(&config, &log)
+    /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
     /// ```
-    pub fn construct(discord_token: &str, database: &Arc<Database>, log: &Arc<Log>, mm_groups: &Arc<Vec<MMGroup>>) -> Result<Self, Box<dyn Error>> {
-        let mut client = Client::new(&discord_token, Handler)?;
-
-        // pack context data
-        {
-            let mut data = client.data.write();
-            data.insert::<Database>(Arc::clone(&database));
-            data.insert::<Log>(Arc::clone(&log));
-            data.insert::<MMGroup>(Arc::clone(&mm_groups));
-            data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
-        }
-        // set owners
-        let owners = match client.cache_and_http.http.get_current_application_info() {
+    pub async fn construct(config: &Config, database: &Arc<Database>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+        // construct owners hash set
+        let http = Http::new_with_token(&config.discord_token);
+        let (owners, _bot_id) = match http.get_current_application_info().await {
             Ok(o) => {
-                let mut owners_set = HashSet::new();
-                owners_set.insert(o.owner.id);
-                owners_set
+                let mut set = HashSet::new();
+                set.insert(o.owner.id);
+                (set, o.id)
             },
             Err(e) => return Err(format!("couldn't get application info: \t{}", e).into())
         };
-        // initialize framework
-        client.with_framework(StandardFramework::new()
+        // construct framework
+        let framework  = StandardFramework::new()
             .configure(|c| c
                 .owners(owners)
                 .prefix("!")
             )
             .group(&GENERAL_GROUP)
-            // handle command errors
-            .after(|context, message, command, result| {
-                if let Err(e) = result {
-                    let log = context.data.read().get::<Log>().cloned().unwrap();
-                    error!(log.logger, "\terror in command: {:?}", e;
-                        "command" => command,
-                        "message" => &message.content,
-                        "author"  => &message.author.name
-                    );
-                }
-            })
-        );
+            .after(after);
+        // construct client
+        let client = match Client::new(&config.discord_token)
+            .framework(framework)
+            .event_handler(Handler).await {
+                Ok (c) => c,
+                Err(e) => return Err(format!("error building discord client: {}", e).into())
+            };
+        // pack context data
+        {
+            let mut data = client.data.write().await;
+            data.insert::<Database>(Arc::clone(&database));
+            data.insert::<Log>(Arc::clone(&log));
+            data.insert::<MMGroup>(Arc::clone(&config.mm_groups));
+        }
+        // return
         Ok (
             Self {
                 client
             }
         )
     }
-}
-
-// Handler structure
-struct Handler;
-
-// EventHandler implementation for Handler
-impl EventHandler for Handler {
-    // handle ready event
-    fn ready(&self, context: Context, ready: Ready) {
-        let log = context.data.read().get::<Log>().cloned().unwrap();
-        info!(log.logger, "\t{} connected to discord...", ready.user.name);
-
-        // create match making group channels and roles
-        let mm_groups = context.data.read().get::<MMGroup>().cloned().unwrap();
-        for (i, guild) in ready.guilds.iter().enumerate() {
-            let guild = guild.id();
-            info!(log.logger, "\tcreating channels and roles for guild {}...", i);
-            //create channels
-            let channels = guild.channels(&context.http).unwrap();
-            'outer: for group in mm_groups.iter() {
-                for channel in channels.values() {
-                    if channel.kind == ChannelType::Text && channel.name == group.name {
-                        info!(log.logger, "\t\tgroup: {} already exists, skipping", group.name);
-                        break 'outer;
-                    }
-                }
-                info!(log.logger, "\t\tchannel: {} added to guild: {}", group.name, i);
-                let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
-            }
-        }
-    }
-    // handle resume event
-    fn resume(&self, context: Context, _: ResumedEvent) {
-        let log = context.data.read().get::<Log>().cloned().unwrap();
-        info!(log.logger, "\tresumed...");
+    /// starts the serenity discord client object
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let log = Arc::new(logger::Log::new());
+    /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
+    /// let database = database::Database::construct(&config, &log)
+    /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
+    /// let _ = bot.start().await.unwrap();
+    /// ```
+    pub async fn start(&mut self) -> Result<(), Box<dyn Error>> {
+        // start bot
+        if let Err(e) = self.client.start().await {
+            return Err(format!("could not start bot: \t{}", e).into())
+        };        
+        Ok (())
     }
 }
 
 // General structure for bot framework
 #[group]
-#[commands(ping, subscribe, unsubscribe)]
+#[commands(subscribe, unsubscribe)]
 struct General;
 
-// ShardManagerContainer for bot framework
-struct ShardManagerContainer;
+// Handler structure
+struct Handler;
 
-// TypeMapKey implementation for ShardManagerContainer
-impl TypeMapKey for ShardManagerContainer {
-    type Value = Arc<Mutex<ShardManager>>;
+// EventHandler implementation for Handler
+#[async_trait]
+impl EventHandler for Handler {
+    // handle ready event
+    async fn ready (&self, context: Context, ready: Ready) {
+        //retrieve log
+        let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        info!(log.logger, "\t{} connected to discord", ready.user.name);
+        // create match making group roles and channels
+        let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
+        for (i, guild) in ready.guilds.iter().enumerate() {
+            let guild = guild.id();
+            info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
+            let channels = guild.channels(&context.http).await.unwrap();
+            'outer: for group in mm_groups.iter() {
+                for channel in channels.values() {
+                    if channel.kind == ChannelType::Text && channel.name == group.name {
+                        info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
+                        break 'outer;
+                    }
+                }
+                let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
+                info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
+            }
+        }
+    }
+    // handle resume event
+    async fn resume(&self, context: Context, _: ResumedEvent) {
+        //retrieve log
+        let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        info!(log.logger, "\tresumed...");
+    }
 }
 
 // TypeMapKey implementation for Database
@@ -158,4 +177,18 @@ impl TypeMapKey for Log {
 // TypeMapKey implementation for MMGroup
 impl TypeMapKey for MMGroup {
     type Value = Arc<Vec<MMGroup>>;
+}
+
+// hooked bot command error handling function
+#[hook]
+async fn after(context: &Context, message: &Message, command: &str, result: CommandResult) {
+    if let Err(e) = result {
+        //retrieve log
+        let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        error!(log.logger, "\terror in command: {:?}", e;
+            "command" => command,
+            "message" => &message.content,
+            "author"  => &message.author.name
+        );
+    }
 }
