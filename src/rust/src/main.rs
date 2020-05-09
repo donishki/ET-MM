@@ -41,12 +41,12 @@ async fn main() {
         }
     };
     // initialize database object
-    let database = {
+    let database_lock = {
         {
             let log = log_lock.read().unwrap();
             info!(log.logger, "initializing database object...");
         }
-        match database::Database::construct(&config, &log_lock) {
+        let database = match database::Database::construct(&config, &log_lock) {
             Ok (d) => Arc::new(d),
             Err(e) => {
                 let log = log_lock.read().unwrap();
@@ -55,11 +55,13 @@ async fn main() {
                 drop(log_lock);
                 panic!();
             }
-        }
+        };
+        Arc::new(RwLock::new(database))
     };
     // add match making groups to database
     {
         let log = log_lock.read().unwrap();
+        let database = database_lock.read().unwrap();
         info!(log.logger, "adding configured match making groups...");
         match database.add_mm_groups(&config.mm_groups) {
             Ok (_) => (),
@@ -72,30 +74,30 @@ async fn main() {
         };
     }
     // initialize discord bot
-    let mut bot = {
-        {
-            let log = log_lock.read().unwrap();
-            info!(log.logger, "initializing discord bot...");
-        }
-        match bot::Bot::construct(&config, &database, &log_lock).await {
-            Ok (b) => b,
-            Err(e) => {
-                let log = log_lock.read().unwrap();
-                error!(log.logger, "\t{}", e);
-                drop(log);
-                drop(log_lock);
-                panic!();
-            }
-        }
-    };
-    // start bot
-    {
-        let log = log_lock.read().unwrap();
-        info!(log.logger, "starting discord bot...");
-        if let Err(e) = bot.start().await {
-            error!(log.logger, "\t{}", e);
-            drop(log);
-            panic!();
-        };
-    }
+    // let mut bot = {
+    //     {
+    //         let log = log_lock.read().unwrap();
+    //         info!(log.logger, "initializing discord bot...");
+    //     }
+    //     match bot::Bot::construct(&config, &database, &log_lock).await {
+    //         Ok (b) => b,
+    //         Err(e) => {
+    //             let log = log_lock.read().unwrap();
+    //             error!(log.logger, "\t{}", e);
+    //             drop(log);
+    //             drop(log_lock);
+    //             panic!();
+    //         }
+    //     }
+    // };
+    // // start bot
+    // {
+    //     let log = log_lock.read().unwrap();
+    //     info!(log.logger, "starting discord bot...");
+    //     if let Err(e) = bot.start().await {
+    //         error!(log.logger, "\t{}", e);
+    //         drop(log);
+    //         panic!();
+    //     };
+    // }
 }
