@@ -42,21 +42,17 @@ async fn main() {
     };
     // initialize database object
     let database_lock = {
-        {
-            let log = log_lock.read().unwrap();
-            info!(log.logger, "initializing database object...");
-        }
-        let database = match database::Database::construct(&config, &log_lock) {
-            Ok (d) => Arc::new(d),
+        let log = log_lock.read().unwrap();
+        info!(log.logger, "initializing database object...");
+        match database::Database::construct(&config, &log_lock) {
+            Ok (d) => Arc::new(RwLock::new(d)),
             Err(e) => {
-                let log = log_lock.read().unwrap();
                 error!(log.logger, "\t{}", e; "connection string" => config.database_connection_string);
                 drop(log);
                 drop(log_lock);
                 panic!();
             }
-        };
-        Arc::new(RwLock::new(database))
+        }
     };
     // add match making groups to database
     {
@@ -73,13 +69,13 @@ async fn main() {
             }
         };
     }
-    // initialize discord bot
+    // // initialize discord bot
     // let mut bot = {
     //     {
     //         let log = log_lock.read().unwrap();
     //         info!(log.logger, "initializing discord bot...");
     //     }
-    //     match bot::Bot::construct(&config, &database, &log_lock).await {
+    //     match bot::Bot::construct(&config, &database_lock, &log_lock).await {
     //         Ok (b) => b,
     //         Err(e) => {
     //             let log = log_lock.read().unwrap();

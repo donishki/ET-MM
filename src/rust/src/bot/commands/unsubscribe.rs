@@ -14,8 +14,6 @@ use serenity:: {
 // unsubscribe the user calling this function to the match making group matching the name
 // of the channel that this function was called from
 pub async fn unsubscribe(context: &Context, message: &Message, _: Args) -> CommandResult {
-    // retrieve database
-    let database = context.data.read().await.get::<Database>().cloned().unwrap();
     // retrieve matchmaking group
     let reply;
     let group = match message.channel_id.name(&context).await {
@@ -27,12 +25,17 @@ pub async fn unsubscribe(context: &Context, message: &Message, _: Args) -> Comma
         }
     };
     // execute database function
-    let result = match database.remove_mm_user(*message.author.id.as_u64(), &group) {
-        Ok (r) => r,
-        Err(e) => {
-            reply = format!("{}", e);
-            let _ = message.channel_id.say(&context.http, &reply);
-            return Err(CommandError::from(reply))
+    let result = {
+        // retrieve database
+        let database_lock = context.data.read().await.get::<Database>().cloned().unwrap();
+        let database = database_lock.read().unwrap();
+        match database.remove_mm_user(*message.author.id.as_u64(), &group) {
+            Ok (r) => r,
+            Err(e) => {
+                reply = format!("{}", e);
+                let _ = message.channel_id.say(&context.http, &reply);
+                return Err(CommandError::from(reply))
+            }
         }
     };
     // return

@@ -14,8 +14,6 @@ use serenity:: {
 // subscribe the user calling this function to the match making group matching the name
 // of the channel that this function was called from
 pub async fn subscribe(context: &Context, message: &Message, _: Args) -> CommandResult {
-    // retrieve database
-    let database = context.data.read().await.get::<Database>().cloned().unwrap();
     // retrieve match making group
     let reply;
     let group = match message.channel_id.name(&context).await {
@@ -27,12 +25,17 @@ pub async fn subscribe(context: &Context, message: &Message, _: Args) -> Command
         }
     };
     // execute database function
-    let result = match database.add_mm_user(*message.author.id.as_u64(), &group) {
-        Ok (r) => r,
-        Err(e) => {
-            reply = format!("{}", e);
-            let _ = message.channel_id.say(&context.http, &reply);
-            return Err(CommandError::from(reply))
+    let result = {
+        // retrieve database
+        let database_lock = context.data.read().await.get::<Database>().cloned().unwrap();
+        let database = database_lock.read().unwrap();
+        match database.add_mm_user(*message.author.id.as_u64(), &group) {
+            Ok (r) => r,
+            Err(e) => {
+                reply = format!("{}", e);
+                let _ = message.channel_id.say(&context.http, &reply);
+                return Err(CommandError::from(reply))
+            }
         }
     };
     // return

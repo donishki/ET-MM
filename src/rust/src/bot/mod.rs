@@ -65,7 +65,7 @@ impl Bot {
     /// let database = database::Database::construct(&config, &log)
     /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
     /// ```
-    pub async fn construct(config: &Config, database: &Arc<Database>, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
+    pub async fn construct(config: &Config, database: &Arc<RwLock<Database>>, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
         // construct owners hash set
         let http = Http::new_with_token(&config.discord_token);
         let (owners, _bot_id) = match http.get_current_application_info().await {
@@ -171,7 +171,7 @@ impl EventHandler for Handler {
 
 // TypeMapKey implementation for Database
 impl TypeMapKey for Database {
-    type Value = Arc<Database>;
+    type Value = Arc<RwLock<Database>>;
 }
 
 // TypeMapKey implementation for Log
