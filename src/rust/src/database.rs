@@ -10,7 +10,10 @@ use postgres:: {
 };
 use std:: {
     error::Error,
-    sync::Arc
+    sync:: {
+        Arc,
+        RwLock
+    }
 };
 
 
@@ -24,7 +27,7 @@ use std:: {
 ///     ```
 pub struct Database {
     connection_string: Arc<String>,
-    log: Arc<Log>
+    log: Arc<RwLock<Log>>
 }
 
 // Database implmentation
@@ -40,7 +43,7 @@ impl Database {
     /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
     /// let db = database::Database::construct(&config).unwrap();"
     /// ```
-    pub fn construct (config: &Config, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub fn construct (config: &Config, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
         Client::connect(&config.database_connection_string, NoTls)?;
         Ok (
             Self {
@@ -69,6 +72,7 @@ impl Database {
     pub fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
         let mut client = Client::connect(&self.connection_string, NoTls)?;
         for group in groups.iter() {
+            let log = self.log.read().unwrap();
             let group = &group.name;
             let statement = client.prepare_typed (
                 "SELECT add_match_making_group ( $1 );",
@@ -77,8 +81,8 @@ impl Database {
             let rows = client.query(&statement, &[&group])?;
             let result: i32 = rows[0].get(0);
             match result {
-                0 => info!(self.log.logger, "\tadded group"; "group" => group),
-                1 => warn!(self.log.logger, "\tgroup already exists in database"; "group" => group),
+                0 => info!(log.logger, "\tadded group"; "group" => group),
+                1 => warn!(log.logger, "\tgroup already exists in database"; "group" => group),
                 _ => return Err(format!("unknown database result for add_match_making_groups function: {}", result).into())
             };
         }

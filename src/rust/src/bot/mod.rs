@@ -36,7 +36,10 @@ use serenity:: {
 use std:: {
     collections::HashSet,
     error::Error,
-    sync::Arc
+    sync:: {
+        Arc,
+        RwLock
+    }
 };
 
 /// Bot structure for discord bot
@@ -62,7 +65,7 @@ impl Bot {
     /// let database = database::Database::construct(&config, &log)
     /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
     /// ```
-    pub async fn construct(config: &Config, database: &Arc<Database>, log: &Arc<Log>) -> Result<Self, Box<dyn Error>> {
+    pub async fn construct(config: &Config, database: &Arc<Database>, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
         // construct owners hash set
         let http = Http::new_with_token(&config.discord_token);
         let (owners, _bot_id) = match http.get_current_application_info().await {
@@ -136,23 +139,24 @@ impl EventHandler for Handler {
     // handle ready event
     async fn ready (&self, context: Context, ready: Ready) {
         //retrieve log
-        let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        info!(log.logger, "\t{} connected to discord", ready.user.name);
+        // let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        // let log = log.read().unwrap();
+        // info!(log.logger, "\t{} connected to discord", ready.user.name);
         // create match making group roles and channels
         let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = guild.id();
-            info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
+            // info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
             let channels = guild.channels(&context.http).await.unwrap();
             'outer: for group in mm_groups.iter() {
                 for channel in channels.values() {
                     if channel.kind == ChannelType::Text && channel.name == group.name {
-                        info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
+                        // info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
                         break 'outer;
                     }
                 }
                 let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
-                info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
+                // info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
             }
         }
     }
@@ -160,6 +164,7 @@ impl EventHandler for Handler {
     async fn resume(&self, context: Context, _: ResumedEvent) {
         //retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        let log = log.read().unwrap();
         info!(log.logger, "\tresumed...");
     }
 }
@@ -171,7 +176,7 @@ impl TypeMapKey for Database {
 
 // TypeMapKey implementation for Log
 impl TypeMapKey for Log {
-    type Value = Arc<Log>;
+    type Value = Arc<RwLock<Log>>;
 }
 
 // TypeMapKey implementation for MMGroup
@@ -185,6 +190,7 @@ async fn after(context: &Context, message: &Message, command: &str, result: Comm
     if let Err(e) = result {
         //retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        let log = log.read().unwrap();
         error!(log.logger, "\terror in command: {:?}", e;
             "command" => command,
             "message" => &message.content,
