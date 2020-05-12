@@ -14,8 +14,8 @@ use serenity:: {
 // subscribe the user calling this function to the match making group matching the name
 // of the channel that this function was called from
 pub async fn subscribe(context: &Context, message: &Message, _: Args) -> CommandResult {
-    // retrieve match making group
     let reply;
+    // retrieve match making group
     let group = match message.channel_id.name(&context).await {
         Some(g) => g,
         None => {
@@ -47,7 +47,7 @@ pub async fn subscribe(context: &Context, message: &Message, _: Args) -> Command
     let role = match guild.role_by_name(&group) {
         Some(r) => r,
         None => {
-            reply = format!("error retrieving role.");
+            reply = format!("error retrieving role `{}`.", &group);
             let _ = message.channel_id.say(&context.http, &reply);
             return Err(CommandError::from(reply))
         }
@@ -55,11 +55,22 @@ pub async fn subscribe(context: &Context, message: &Message, _: Args) -> Command
     // add role to discord and database
     let result = {
         // add role to discord
-        let _ = member.add_role(&context.http, role).await.unwrap();
+        if let Err(e) = member.add_role(&context.http, role).await {
+            reply = format!("error setting role: `{}` for user: `{}` error: `{}`", role, message.author.name, e);
+            let _ = message.channel_id.say(&context.http, &reply);
+            return Err(CommandError::from(reply))            
+        }
         // retrieve database
-        let database_lock = context.data.read().await.get::<Database>().cloned().unwrap();
+        let database = match context.data.read().await.get::<Database>().cloned() {
+            Some(d) => d,
+            None => {
+                reply = "error retrieving database object".to_string();
+                let _ = message.channel_id.say(&context.http, &reply);
+                return Err(CommandError::from(reply))                
+            }
+        };
         // add role to database
-        let database = database_lock.read().await;
+        let database = database.read().await;
         match database.add_mm_user(*message.author.id.as_u64(), &group).await {
             Ok (d) => d,
             Err(e) => {
