@@ -29,7 +29,8 @@ use serenity:: {
             Message
         },
         event::ResumedEvent,
-        gateway::Ready
+        gateway::Ready,
+        guild::Guild
     },
     prelude::*
 };
@@ -58,14 +59,13 @@ impl Bot {
     /// # Example
     ///
     /// ```
-    /// let log = Arc::new(logger::Log::new());
+    /// let log = Arc::new(RwLock::new(logger::Log::new()));
     /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
-    /// let database = database::Database::construct(&config, &log)
-    /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
+    /// let database = database::Database::construct(&config, &log).await.unwrap();
+    /// let mut bot = bot::Bot::construct(&config, &database, &log).await.unwrap();
     /// ```
     pub async fn construct(config: &Config, database: &Arc<RwLock<Database>>, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
         // construct owners hash set
-        println!("{}", &config.discord_token);
         let http = Http::new_with_token(&config.discord_token);
         let (owners, _bot_id) = match http.get_current_application_info().await {
             Ok(o) => {
@@ -109,10 +109,10 @@ impl Bot {
     /// # Example
     ///
     /// ```
-    /// let log = Arc::new(logger::Log::new());
+    /// let log = Arc::new(RwLock::new(logger::Log::new()));
     /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
-    /// let database = database::Database::construct(&config, &log)
-    /// let mut bot = bot::Bot::construct(&config, &database, &log).unwrap();
+    /// let database = database::Database::construct(&config, &log).await.unwrap();
+    /// let mut bot = bot::Bot::construct(&config, &database, &log).await.unwrap();
     /// let _ = bot.start().await.unwrap();
     /// ```
     pub async fn start(&mut self) -> Result<(), Box<dyn Error>> {
@@ -144,10 +144,10 @@ impl EventHandler for Handler {
         // retrieve match making groups
         let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
         let mm_groups = mm_groups.read().await;
-        // add match making group channels
+        // add match making group channels and roles
         for (i, guild) in ready.guilds.iter().enumerate() {
-            let guild = guild.id();
-            info!(log.logger, "\tcreating match making channels..."; "guild" => i);
+            let guild = Guild::get(&context.http, guild.id()).await.unwrap();
+            info!(log.logger, "\tcreating match making channels and roles..."; "guild" => i);
             let channels = guild.channels(&context.http).await.unwrap();
             for group in mm_groups.iter() {
                 if channels.values().any(|channel| channel.kind == ChannelType::Text && channel.name == group.name) {
@@ -156,13 +156,19 @@ impl EventHandler for Handler {
                     let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
                     info!(log.logger, "\t\tchannel added"; "channel" => &group.name); 
                 }
+                if guild.roles.values().any(|role| role.name == group.name) {
+                    info!(log.logger, "\t\trole already exists, skipping"; "role" => &group.name);
+                } else {
+                    let _ = guild.create_role(&context.http, |role| role.hoist(true).name(&group.name)).await;
+                    info!(log.logger, "\t\trole added"; "role" => &group.name);
+                }
                 continue;
             }
         }
     }
     // handle resume event
     async fn resume(&self, context: Context, _: ResumedEvent) {
-        //retrieve log
+        // retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
         let log = log.read().await;
         info!(log.logger, "\tresumed...");
@@ -188,7 +194,7 @@ impl TypeMapKey for MMGroup {
 #[hook]
 async fn after(context: &Context, message: &Message, command: &str, result: CommandResult) {
     if let Err(e) = result {
-        //retrieve log
+        // retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
         let log = log.read().await;
         error!(log.logger, "\terror in command: {:?}", e;
