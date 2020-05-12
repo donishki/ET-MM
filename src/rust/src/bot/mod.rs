@@ -137,37 +137,26 @@ struct Handler;
 impl EventHandler for Handler {
     // handle ready event
     async fn ready (&self, context: Context, ready: Ready) {
-        //retrieve log
+        // retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        {
-            let log = log.read().await;
-            info!(log.logger, "\t{} connected to discord", ready.user.name);
-        }
-        // create match making group roles and channels
+        let log = log.read().await;
+        info!(log.logger, "\t{} connected to discord", ready.user.name);
+        // retrieve match making groups
         let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
         let mm_groups = mm_groups.read().await;
+        // add match making group channels
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = guild.id();
-            {
-                let log = log.read().await;
-                info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
-            }
+            info!(log.logger, "\tcreating match making channels..."; "guild" => i);
             let channels = guild.channels(&context.http).await.unwrap();
-            'outer: for group in mm_groups.iter() {
-                for channel in channels.values() {
-                    if channel.kind == ChannelType::Text && channel.name == group.name {
-                        {
-                            let log = log.read().await;
-                            info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
-                            break 'outer;
-                        }
-                    }
+            for group in mm_groups.iter() {
+                if channels.values().any(|channel| channel.kind == ChannelType::Text && channel.name == group.name) {
+                    info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
+                } else {
+                    let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
+                    info!(log.logger, "\t\tchannel added"; "channel" => &group.name); 
                 }
-                let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
-                {
-                    let log = log.read().await;
-                    info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
-                }
+                continue;
             }
         }
     }
