@@ -65,6 +65,7 @@ impl Bot {
     /// ```
     pub async fn construct(config: &Config, database: &Arc<RwLock<Database>>, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
         // construct owners hash set
+        println!("{}", &config.discord_token);
         let http = Http::new_with_token(&config.discord_token);
         let (owners, _bot_id) = match http.get_current_application_info().await {
             Ok(o) => {
@@ -72,7 +73,7 @@ impl Bot {
                 set.insert(o.owner.id);
                 (set, o.id)
             },
-            Err(e) => return Err(format!("could not get application info: \t{}", e).into())
+            Err(e) => return Err(format!("could not get application info: {}", e).into())
         };
         // construct framework
         let framework  = StandardFramework::new()
@@ -144,6 +145,7 @@ impl EventHandler for Handler {
         }
         // create match making group roles and channels
         let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
+        let mm_groups = mm_groups.read().await;
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = guild.id();
             {
@@ -190,7 +192,7 @@ impl TypeMapKey for Log {
 
 // TypeMapKey implementation for MMGroup
 impl TypeMapKey for MMGroup {
-    type Value = Arc<Vec<MMGroup>>;
+    type Value = Arc<RwLock<Vec<MMGroup>>>;
 }
 
 // hooked bot command error handling function

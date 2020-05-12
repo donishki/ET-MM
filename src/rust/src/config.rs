@@ -6,6 +6,7 @@ use std::io:: {
     BufReader
 };
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 /// Config structure for bot configuration
 ///
@@ -19,7 +20,7 @@ use std::sync::Arc;
 pub struct Config {
     pub database_connection_string: Arc<String>,
     pub discord_token: String,
-    pub mm_groups: Arc<Vec<MMGroup>>
+    pub mm_groups: Arc<RwLock<Vec<MMGroup>>>
 }
 
 // Config implmentation
@@ -94,7 +95,7 @@ impl Config {
             Self {
                 database_connection_string: Arc::new(format!("host={} user={}", db_host, db_user)), 
                 discord_token,
-                mm_groups: Arc::new(mm_groups)
+                mm_groups: Arc::new(RwLock::new(mm_groups))
             }
         )
     }

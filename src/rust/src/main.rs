@@ -57,7 +57,7 @@ async fn main() {
         let log = log_lock.read().await;
         let database = database_lock.read().await;
         info!(log.logger, "adding configured match making groups...");
-        match database.add_mm_groups(&config.mm_groups).await {
+        match database.add_mm_groups(&config).await {
             Ok (_) => (),
             Err(e) => {
                 error!(log.logger, "\t{}", e);
