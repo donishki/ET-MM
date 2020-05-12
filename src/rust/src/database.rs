@@ -1,7 +1,4 @@
-use crate::config:: {
-    Config,
-    MMGroup
-};
+use crate::config::Config;
 use crate::logger::Log;
 use tokio_postgres:: {
     NoTls,
@@ -66,14 +63,16 @@ impl Database {
     /// groups.push("6v6");
     /// database::Database::add_mm_groups(groups).unwrap();"
     /// ```
-    pub async fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
+    pub async fn add_mm_groups (&self, config: &Config) -> Result <(), Box<dyn Error>> {
         let (client, connection) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
+        let log = self.log.read();
+        let groups = config.mm_groups.read();
         tokio::spawn(async move {
-            // FIXME: Error handle here somehow
             connection.await
         });
+        let groups = groups.await;
+        let log = log.await;
         for group in groups.iter() {
-            let log = self.log.read().await;
             let group = &group.name;
             let statement = client.prepare_typed (
                 "SELECT add_match_making_group ( $1 );",
