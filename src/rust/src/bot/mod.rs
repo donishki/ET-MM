@@ -36,11 +36,9 @@ use serenity:: {
 use std:: {
     collections::HashSet,
     error::Error,
-    sync:: {
-        Arc,
-        RwLock
-    }
+    sync::Arc
 };
+use tokio::sync::RwLock;
 
 /// Bot structure for discord bot
 ///
@@ -74,7 +72,7 @@ impl Bot {
                 set.insert(o.owner.id);
                 (set, o.id)
             },
-            Err(e) => return Err(format!("couldn't get application info: \t{}", e).into())
+            Err(e) => return Err(format!("could not get application info: \t{}", e).into())
         };
         // construct framework
         let framework  = StandardFramework::new()
@@ -139,24 +137,35 @@ impl EventHandler for Handler {
     // handle ready event
     async fn ready (&self, context: Context, ready: Ready) {
         //retrieve log
-        // let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        // let log = log.read().unwrap();
-        // info!(log.logger, "\t{} connected to discord", ready.user.name);
+        let log = context.data.read().await.get::<Log>().cloned().unwrap();
+        {
+            let log = log.read().await;
+            info!(log.logger, "\t{} connected to discord", ready.user.name);
+        }
         // create match making group roles and channels
         let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = guild.id();
-            // info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
+            {
+                let log = log.read().await;
+                info!(log.logger, "\tcreating channels for guild..."; "guild" => i);
+            }
             let channels = guild.channels(&context.http).await.unwrap();
             'outer: for group in mm_groups.iter() {
                 for channel in channels.values() {
                     if channel.kind == ChannelType::Text && channel.name == group.name {
-                        // info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
-                        break 'outer;
+                        {
+                            let log = log.read().await;
+                            info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
+                            break 'outer;
+                        }
                     }
                 }
                 let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
-                // info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
+                {
+                    let log = log.read().await;
+                    info!(log.logger, "\t\tchannel added"; "channel" => &group.name);
+                }
             }
         }
     }
@@ -164,7 +173,7 @@ impl EventHandler for Handler {
     async fn resume(&self, context: Context, _: ResumedEvent) {
         //retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        let log = log.read().unwrap();
+        let log = log.read().await;
         info!(log.logger, "\tresumed...");
     }
 }
@@ -190,7 +199,7 @@ async fn after(context: &Context, message: &Message, command: &str, result: Comm
     if let Err(e) = result {
         //retrieve log
         let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        let log = log.read().unwrap();
+        let log = log.read().await;
         error!(log.logger, "\terror in command: {:?}", e;
             "command" => command,
             "message" => &message.content,

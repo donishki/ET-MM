@@ -3,18 +3,15 @@ use crate::config:: {
     MMGroup
 };
 use crate::logger::Log;
-use postgres:: {
-    Client,
+use tokio_postgres:: {
     NoTls,
     types::Type
 };
 use std:: {
     error::Error,
-    sync:: {
-        Arc,
-        RwLock
-    }
+    sync::Arc
 };
+use tokio::sync::RwLock;
 
 
 /// Database structure
@@ -43,8 +40,8 @@ impl Database {
     /// let config = config::Config::construct("/opt/et-mm-bot/config.cfg").unwrap();
     /// let db = database::Database::construct(&config).unwrap();"
     /// ```
-    pub fn construct (config: &Config, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
-        Client::connect(&config.database_connection_string, NoTls)?;
+    pub async fn construct (config: &Config, log: &Arc<RwLock<Log>>) -> Result<Self, Box<dyn Error>> {
+        let _ = tokio_postgres::connect(&config.database_connection_string, NoTls).await?;
         Ok (
             Self {
                 connection_string: Arc::clone(&config.database_connection_string),
@@ -69,16 +66,16 @@ impl Database {
     /// groups.push("6v6");
     /// database::Database::add_mm_groups(groups).unwrap();"
     /// ```
-    pub fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
-        let mut client = Client::connect(&self.connection_string, NoTls)?;
+    pub async fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
+        let (client, _) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
         for group in groups.iter() {
-            let log = self.log.read().unwrap();
+            let log = self.log.read().await;
             let group = &group.name;
             let statement = client.prepare_typed (
                 "SELECT add_match_making_group ( $1 );",
                 &[Type::TEXT]
-            )?;
-            let rows = client.query(&statement, &[&group])?;
+            ).await?;
+            let rows = client.query(&statement, &[&group]).await?;
             let result: i32 = rows[0].get(0);
             match result {
                 0 => info!(log.logger, "\tadded group"; "group" => group),
@@ -106,13 +103,13 @@ impl Database {
     /// ```
     /// database::Database::add_mm_user("uuid", "1v1").unwrap();"
     /// ```
-    pub fn add_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
-        let mut client = Client::connect(&self.connection_string, NoTls)?;
+    pub async fn add_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
+        let (client, _) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
         let statement = client.prepare_typed (
             "SELECT add_match_making_user ( $1, $2 );",
             &[Type::TEXT, Type::TEXT]
-        )?;
-        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
+        ).await?;
+        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group]).await?;
         Ok (rows[0].get(0))
     }
     /// removes user from specified match making group in the database for a given 
@@ -133,13 +130,14 @@ impl Database {
     /// ```
     /// database::Database::remove_mm_user("uuid", "1v1").unwrap();"
     /// ```
-    pub fn remove_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
-        let mut client = Client::connect(&self.connection_string, NoTls)?;
+    pub async fn remove_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
+        let (client, _) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
         let statement = client.prepare_typed (
             "SELECT remove_match_making_user ( $1, $2 );",
             &[Type::TEXT, Type::TEXT]
-        )?;
-        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group])?;
+        ).await?;
+        let rows = client.query(&statement, &[&discord_uuid.to_string(), &group]).await?;
         Ok (rows[0].get(0))
     }
+
 }
