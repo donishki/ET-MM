@@ -147,7 +147,7 @@ impl EventHandler for Handler {
         // add match making group channels and roles
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = Guild::get(&context.http, guild.id()).await.unwrap();
-            info!(log.logger, "\tcreating match making channels and roles..."; "guild" => i);
+            info!(log.logger, "\tcreating match making channels and roles for guild: {}", i);
             let channels = guild.channels(&context.http).await.unwrap();
             for group in mm_groups.iter() {
                 if channels.values().any(|channel| channel.kind == ChannelType::Text && channel.name == group.name) {

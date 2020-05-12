@@ -38,7 +38,7 @@ pub async fn unsubscribe(context: &Context, message: &Message, _: Args) -> Comma
             }
         }
     };
-    // return
+    // parse result
     match result {
         0 => reply = format!("`{}` has been unsubscribed from the `{}` match making group.", message.author.name, group),
         1 => reply = format!("failed to add `{}` to the database.", message.author.name),
