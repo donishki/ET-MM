@@ -67,31 +67,31 @@ async fn main() {
             }
         };
     }
-    // // initialize discord bot
-    // let mut bot = {
-    //     {
-    //         let log = log_lock.read().await;
-    //         info!(log.logger, "initializing discord bot...");
-    //     }
-    //     match bot::Bot::construct(&config, &database_lock, &log_lock).await {
-    //         Ok (b) => b,
-    //         Err(e) => {
-    //             let log = log_lock.read().await;
-    //             error!(log.logger, "\t{}", e);
-    //             drop(log);
-    //             drop(log_lock);
-    //             panic!();
-    //         }
-    //     }
-    // };
-    // // start bot
-    // {
-    //     let log = log_lock.read().unwrap();
-    //     info!(log.logger, "starting discord bot...");
-    //     if let Err(e) = bot.start().await {
-    //         error!(log.logger, "\t{}", e);
-    //         drop(log);
-    //         panic!();
-    //     };
-    // }
+    // initialize discord bot
+    let mut bot = {
+        {
+            let log = log_lock.read().await;
+            info!(log.logger, "initializing discord bot...");
+        }
+        match bot::Bot::construct(&config, &database_lock, &log_lock).await {
+            Ok (b) => b,
+            Err(e) => {
+                let log = log_lock.read().await;
+                error!(log.logger, "\t{}", e);
+                drop(log);
+                drop(log_lock);
+                panic!();
+            }
+        }
+    };
+    // start bot
+    {
+        let log = log_lock.read().await;
+        info!(log.logger, "starting discord bot...");
+        if let Err(e) = bot.start().await {
+            error!(log.logger, "\t{}", e);
+            drop(log);
+            panic!();
+        };
+    }
 }

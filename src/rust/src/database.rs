@@ -69,11 +69,8 @@ impl Database {
     pub async fn add_mm_groups (&self, groups: &Arc<Vec<MMGroup>>) -> Result <(), Box<dyn Error>> {
         let (client, connection) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
         tokio::spawn(async move {
+            // FIXME: Error handle here somehow
             connection.await
-            // if let Err(e) = connection.await {
-            //     return Err(format!("error connecting to database: {}", e).into());
-            // }
-            // Ok (())
         });
         for group in groups.iter() {
             let log = self.log.read().await;
