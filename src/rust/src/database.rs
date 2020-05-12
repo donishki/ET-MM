@@ -107,7 +107,10 @@ impl Database {
     /// database::Database::add_mm_user("uuid", "1v1").unwrap();"
     /// ```
     pub async fn add_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
-        let (client, _) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
+        let (client, connection) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
+        tokio::spawn(async move {
+            connection.await
+        });
         let statement = client.prepare_typed (
             "SELECT add_match_making_user ( $1, $2 );",
             &[Type::TEXT, Type::TEXT]
@@ -134,7 +137,10 @@ impl Database {
     /// database::Database::remove_mm_user("uuid", "1v1").unwrap();"
     /// ```
     pub async fn remove_mm_user (&self, discord_uuid: u64, group: &str) -> Result <i32, Box<dyn Error>> {
-        let (client, _) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
+        let (client, connection) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
+        tokio::spawn(async move {
+            connection.await
+        });
         let statement = client.prepare_typed (
             "SELECT remove_match_making_user ( $1, $2 );",
             &[Type::TEXT, Type::TEXT]

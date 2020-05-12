@@ -32,7 +32,7 @@ pub async fn unsubscribe(context: &Context, message: &Message, _: Args) -> Comma
         match database.remove_mm_user(*message.author.id.as_u64(), &group).await {
             Ok (r) => r,
             Err(e) => {
-                reply = format!("{}", e);
+                reply = format!("database error: {}", e);
                 let _ = message.channel_id.say(&context.http, &reply);
                 return Err(CommandError::from(reply))
             }
