@@ -28,8 +28,8 @@ pub async fn subscribe(context: &Context, message: &Message, _: Args) -> Command
     let result = {
         // retrieve database
         let database_lock = context.data.read().await.get::<Database>().cloned().unwrap();
-        let database = database_lock.read().unwrap();
-        match database.add_mm_user(*message.author.id.as_u64(), &group) {
+        let database = database_lock.read().await;
+        match database.add_mm_user(*message.author.id.as_u64(), &group).await {
             Ok (r) => r,
             Err(e) => {
                 reply = format!("{}", e);
