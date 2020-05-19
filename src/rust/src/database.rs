@@ -1,4 +1,7 @@
-use crate::config::Config;
+use crate::config:: {
+    Config,
+    MMGroup
+};
 use crate::logger::Log;
 use tokio_postgres:: {
     NoTls,
@@ -63,14 +66,14 @@ impl Database {
     /// groups.push("6v6");
     /// database::Database::add_mm_groups(groups).unwrap();"
     /// ```
-    pub async fn add_mm_groups (&self, config: &Config) -> Result <(), Box<dyn Error>> {
+    pub async fn add_mm_groups (&self, groups: &Vec<MMGroup>) -> Result <(), Box<dyn Error>> {
         let (client, connection) = tokio_postgres::connect(&self.connection_string, NoTls).await?;
         let log = self.log.read();
-        let groups = config.mm_groups.read();
+        // let groups = config.mm_groups.read();
         tokio::spawn(async move {
             connection.await
         });
-        let groups = groups.await;
+        // let groups = groups.await;
         let log = log.await;
         for group in groups.iter() {
             let group = &group.name;
@@ -81,8 +84,8 @@ impl Database {
             let rows = client.query(&statement, &[&group]).await?;
             let result: i32 = rows[0].get(0);
             match result {
-                0 => info!(log.logger, "\tadded group"; "group" => group),
-                1 => warn!(log.logger, "\tgroup already exists in database"; "group" => group),
+                0 => info!(log.logger, "\t\tadded"; "group" => group),
+                1 => warn!(log.logger, "\t\tskipping: already exists"; "group" => group),
                 _ => return Err(format!("unknown database result for add_match_making_groups function: {}", result).into())
             };
         }

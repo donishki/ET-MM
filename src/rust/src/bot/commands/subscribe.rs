@@ -33,7 +33,6 @@ pub async fn subscribe(context: &Context, message: &Message, _: Args) -> Command
             return Err(CommandError::from(reply))
         }
     };
-    let guild = guild.read().await;
     // retrieve member
     let mut member = match guild.member(&context.http, &message.author.id).await {
         Ok (m) => m,

@@ -138,12 +138,40 @@ impl EventHandler for Handler {
     // handle ready event
     async fn ready (&self, context: Context, ready: Ready) {
         // retrieve log
-        let log = context.data.read().await.get::<Log>().cloned().unwrap();
-        let log = log.read().await;
-        info!(log.logger, "\t{} connected to discord", ready.user.name);
+        let log_lock = context.data.read().await.get::<Log>().cloned().unwrap();
+        let log = log_lock.read().await;
+        // initialize
+        info!(log.logger, "\t{} connected to discord...", ready.user.name);
         // retrieve match making groups
-        let mm_groups = context.data.read().await.get::<MMGroup>().cloned().unwrap();
-        let mm_groups = mm_groups.read().await;
+        let mm_groups_lock = match context.data.read().await.get::<MMGroup>().cloned() {
+            Some(m) => m,
+            None => {
+                error!(log.logger, "\terror retrieving match making groups lock...");
+                drop(log);
+                drop(log_lock);
+                panic!();
+            }
+        };
+        let mm_groups = mm_groups_lock.read().await;
+        // retrieve database
+        let database_lock = match context.data.read().await.get::<Database>().cloned() {
+            Some(d) => d,
+            None => {
+                error!(log.logger, "\terror retrieving database lock...");
+                drop(log);
+                drop(log_lock);
+                panic!()
+            }
+        };
+        let database = database_lock.read().await;
+        // add match making groups to database
+        info!(log.logger, "\tadding match making groups to database...");
+        if let Err(e) = database.add_mm_groups(&mm_groups).await {
+            error!(log.logger, "\t\t{}", e);
+            drop(log);
+            drop(log_lock);
+            panic!();
+        }
         // add match making group channels and roles
         for (i, guild) in ready.guilds.iter().enumerate() {
             let guild = Guild::get(&context.http, guild.id()).await.unwrap();
@@ -151,16 +179,16 @@ impl EventHandler for Handler {
             let channels = guild.channels(&context.http).await.unwrap();
             for group in mm_groups.iter() {
                 if channels.values().any(|channel| channel.kind == ChannelType::Text && channel.name == group.name) {
-                    info!(log.logger, "\t\tchannel already exists, skipping"; "channel" => &group.name);
+                    info!(log.logger, "\t\tskipping: already exists"; "channel" => &group.name);
                 } else {
                     let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
-                    info!(log.logger, "\t\tchannel added"; "channel" => &group.name); 
+                    info!(log.logger, "\t\tadded"; "channel" => &group.name); 
                 }
                 if guild.roles.values().any(|role| role.name == group.name) {
-                    info!(log.logger, "\t\trole already exists, skipping"; "role" => &group.name);
+                    info!(log.logger, "\t\tskipping: already exists"; "role" => &group.name);
                 } else {
                     let _ = guild.create_role(&context.http, |role| role.hoist(true).name(&group.name)).await;
-                    info!(log.logger, "\t\trole added"; "role" => &group.name);
+                    info!(log.logger, "\t\tadded"; "role" => &group.name);
                 }
                 continue;
             }
