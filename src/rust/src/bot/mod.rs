@@ -179,13 +179,13 @@ impl EventHandler for Handler {
             let channels = guild.channels(&context.http).await.unwrap();
             for group in mm_groups.iter() {
                 if channels.values().any(|channel| channel.kind == ChannelType::Text && channel.name == group.name) {
-                    info!(log.logger, "\t\tskipping: already exists"; "channel" => &group.name);
+                    warn!(log.logger, "\t\tskipping: already exists"; "channel" => &group.name);
                 } else {
                     let _ = guild.create_channel(&context.http, |c| c.name(&group.name).kind(ChannelType::Text));
                     info!(log.logger, "\t\tadded"; "channel" => &group.name); 
                 }
                 if guild.roles.values().any(|role| role.name == group.name) {
-                    info!(log.logger, "\t\tskipping: already exists"; "role" => &group.name);
+                    warn!(log.logger, "\t\tskipping: already exists"; "role" => &group.name);
                 } else {
                     let _ = guild.create_role(&context.http, |role| role.hoist(true).name(&group.name)).await;
                     info!(log.logger, "\t\tadded"; "role" => &group.name);
