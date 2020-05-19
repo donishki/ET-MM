@@ -22,10 +22,10 @@ async fn main() {
     let log = log_lock.read().await;
     // FIXME: eventually this will be where arguements are processed
     //        for now just hardcode these parameters
+    let bot_config_path: &'static str = "/opt/et-mm-bot/config.cfg";
     // initialize bot
     info!(log.logger, "ET-MM Bot version {}", env!("CARGO_PKG_VERSION"));
     // load bot configuration
-    let bot_config_path: &'static str = "/opt/et-mm-bot/config.cfg";
     let config = {
         info!(log.logger, "loading configuration into memory...");
         match Config::construct(bot_config_path) {
@@ -51,20 +51,6 @@ async fn main() {
             }
         }
     };
-    // add match making groups to database
-    {
-        info!(log.logger, "adding configured match making groups...");
-        let database = database_lock.read().await;
-        match database.add_mm_groups(&config).await {
-            Ok (_) => (),
-            Err(e) => {
-                error!(log.logger, "\t{}", e);
-                drop(log);
-                drop(log_lock);
-                panic!();
-            }
-        };
-    }
     // initialize discord bot
     let mut bot = {
         info!(log.logger, "initializing discord bot...");
